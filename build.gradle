@@ -16,4 +16,6 @@ ihmc {
 mainDependencies {
     compile group: "org.ejml", name: "dense64", version: "0.30"
     compile group: "us.ihmc", name: "ihmc-javafx-toolkit", version: "0.12.7"
+    compile group: "us.ihmc", name: "euclid-shape", version: "source"
+    compile group: "us.ihmc", name: "euclid-test", version: "source"
 }
