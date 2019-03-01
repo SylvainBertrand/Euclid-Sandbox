@@ -1,0 +1,19 @@
+plugins {
+   id("us.ihmc.ihmc-build") version "0.15.6"
+   id("us.ihmc.ihmc-ci") version "4.23"
+}
+
+ihmc {
+   group = "us.ihmc"
+   version = "0.11.0"
+   vcsUrl = "https://github.com/ihmcrobotics/euclid-visualizers"
+   openSource = true
+
+   configureDependencyResolution()
+   configurePublications()
+}
+
+mainDependencies {
+    compile group: "org.ejml", name: "dense64", version: "0.30"
+    compile group: "us.ihmc", name: "ihmc-javafx-toolkit", version: "0.12.7"
+}
