@@ -3,23 +3,30 @@ package us.ihmc.euclid.visualizers;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
+
+import com.sun.corba.se.impl.protocol.giopmsgheaders.Message;
 
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.AmbientLight;
+import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.scene.shape.Sphere;
 import javafx.stage.Stage;
 import us.ihmc.euclid.axisAngle.AxisAngle;
+import us.ihmc.euclid.geometry.interfaces.Vertex3DSupplier;
 import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
 import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3D;
-import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3DTroublesomeDatasetLibrary.DatasetGJKFaceNormalIntegrity_20190228_220911;
+import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3DTroublesomeDatasetLibrary.*;
 import us.ihmc.euclid.shape.convexPolytope.Face3D;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;
@@ -31,6 +38,7 @@ import us.ihmc.euclid.tuple3D.Point3D;
 import us.ihmc.euclid.tuple3D.interfaces.Tuple3DReadOnly;
 import us.ihmc.graphicsDescription.MeshDataGenerator;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
+import us.ihmc.javaFXToolkit.graphics.JavaFXMeshDataInterpreter;
 import us.ihmc.javaFXToolkit.scenes.View3DFactory;
 import us.ihmc.javaFXToolkit.shapes.JavaFXMeshBuilder;
 import us.ihmc.javaFXToolkit.shapes.JavaFXMultiColorMeshBuilder;
@@ -47,12 +55,10 @@ public class ConvexPolytope3DVisualizer extends Application
       cameraController.setMaxLatitude(Double.POSITIVE_INFINITY);
       view3dFactory.addWorldCoordinateSystem(0.001);
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
-      //      view3dFactory.addPointLight(0.0, 0.0, 10.0, Color.WHEAT);
-      view3dFactory.addPointLight(10.0, 0.0, 0.0, Color.WHEAT);
-      //      view3dFactory.addPointLight(0.0, 10.0, 0.0, Color.WHEAT);
+      view3dFactory.addPointLight(-10.0, 0.0, 1.0, Color.WHEAT);
 
-      ConvexPolytope3DTroublesomeDataset dataset = new DatasetGJKFaceNormalIntegrity_20190228_220911();
-      ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(dataset.getPointsBeforeIssueAsSupplier(), dataset.getConstructionEpsilon());
+      ConvexPolytope3DTroublesomeDataset dataset = new ConvexPolytope3DTroublesomeDataset_20190302_160115();
+      ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(dataset.getPointsBeforeIssue()), dataset.getConstructionEpsilon());
       convexPolytope3D.addVertex(dataset.getTroublesomePoint());
       view3dFactory.addNodeToView(generateFace3DsMesh(convexPolytope3D.getFaces()));
       view3dFactory.addNodeToView(generateFace3DsNormalMesh(convexPolytope3D.getFaces()));
@@ -63,7 +69,7 @@ public class ConvexPolytope3DVisualizer extends Application
 //      Collection<HalfEdge3DReadOnly> silhouetteEdges = EuclidPolytopeTools.computeSilhouette(convexPolytope3D.getFaces(), dataset.getTroublesomePoint(),
 //                                                                                             dataset.getConstructionEpsilon(), visibleFaces, inPlaneFaces);
 //      view3dFactory.addNodeToView(generateHalfEdge3DsMesh(silhouetteEdges, Color.YELLOW));
-//      view3dFactory.addNodeToView(generateFace3DsMesh(inPlaneFaces, Color.DARKOLIVEGREEN));
+//      view3dFactory.addNodeToView(generateFace3DsMesh(inPlaneFaces, Color.DARKRED));
 //      view3dFactory.addNodeToView(generateFace3DsMesh(visibleFaces, Color.GREEN));
 
       primaryStage.setTitle(getClass().getSimpleName());
@@ -79,23 +85,31 @@ public class ConvexPolytope3DVisualizer extends Application
       Platform.exit();
    }
 
-   public static Node generateFace3DsMesh(List<? extends Face3DReadOnly> faces)
+   public static <F extends Face3DReadOnly> Node generateFace3DsMesh(List<F> faces)
    {
+      Group group = new Group();
       double hueDelta = 360.0 / faces.size();
       double hue = 0.0;
-      JavaFXMultiColorMeshBuilder meshBuilder = new JavaFXMultiColorMeshBuilder(new TextureColorAdaptivePalette(1024));
 
-      for (Face3DReadOnly face : faces)
+      for (F face : faces)
       {
+         List<Point3D> cwFaceVertices = face.getVertices().stream().map(Point3D::new).collect(Collectors.toList());
          List<Point3D> ccwFaceVertices = face.getVertices().stream().map(Point3D::new).collect(Collectors.toList());
          Collections.reverse(ccwFaceVertices);
-         meshBuilder.addMesh(MeshDataGenerator.Polygon(ccwFaceVertices), Color.hsb(hue, 0.9, 0.9, 0.7));
+
+         MeshView outsideFaceNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(MeshDataGenerator.Polygon(ccwFaceVertices)));
+         outsideFaceNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println(face.toString()));
+         outsideFaceNode.setMaterial(new PhongMaterial(Color.hsb(hue, 0.9, 0.9, 0.9)));
+         group.getChildren().add(outsideFaceNode);
+
+         MeshView insideFaceNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(MeshDataGenerator.Polygon(cwFaceVertices)));
+         insideFaceNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println(face.toString()));
+         insideFaceNode.setMaterial(new PhongMaterial(Color.hsb(hue, 0.9, 0.9, 0.7)));
+         group.getChildren().add(insideFaceNode);
          hue += hueDelta;
       }
 
-      MeshView meshView = new MeshView(meshBuilder.generateMesh());
-      meshView.setMaterial(meshBuilder.generateMaterial());
-      return meshView;
+      return group;
    }
 
    public static Node generateFace3DsMesh(List<? extends Face3DReadOnly> faces, Color color)
@@ -148,13 +162,17 @@ public class ConvexPolytope3DVisualizer extends Application
 
    public static Node generateHalfEdge3DsMesh(Collection<? extends HalfEdge3DReadOnly> edges, Color color)
    {
-      JavaFXMeshBuilder meshBuilder = new JavaFXMeshBuilder();
+      Group group = new Group();
 
-      List<Vertex3DReadOnly> points = edges.stream().map(HalfEdge3DReadOnly::getOrigin).collect(Collectors.toList());
-      meshBuilder.addMultiLine(points, 0.002, true);
-      MeshView meshView = new MeshView(meshBuilder.generateMesh());
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
+      for (HalfEdge3DReadOnly edge : edges)
+      {
+         MeshView edgeNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(MeshDataGenerator.Line(edge.getOrigin(), edge.getDestination(), 0.002)));
+         edgeNode.setMaterial(new PhongMaterial(color));
+         edgeNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println(edge.toString()));
+         group.getChildren().add(edgeNode);
+      }
+      
+      return group;
    }
 
    public static Color nextColor(Random random)
