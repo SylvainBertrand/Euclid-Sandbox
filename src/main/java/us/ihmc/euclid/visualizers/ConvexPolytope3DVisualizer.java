@@ -1,11 +1,11 @@
 package us.ihmc.euclid.visualizers;
 
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -16,24 +16,23 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
-import javafx.scene.shape.Sphere;
 import javafx.stage.Stage;
-import us.ihmc.commons.thread.ThreadTools;
 import us.ihmc.euclid.axisAngle.AxisAngle;
-import us.ihmc.euclid.geometry.interfaces.Vertex3DSupplier;
 import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
-import us.ihmc.euclid.shape.collision.SupportingVertexHolder;
 import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3D;
-import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3DTroublesomeDatasetLibrary.ConvexPolytope3DTroublesomeDataset_20190323_224417;
+import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3DTroublesomeDatasetLibrary.ConvexPolytope3DTroublesomeDataset_20190323_213507;
+import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3DTroublesomeDatasetLibrary.DatasetGJKNullPointerExceptionBug1Simplified;
+import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3DTroublesomeDatasetLibrary.DatasetGJKNullPointerExceptionBug4Simplified;
 import us.ihmc.euclid.shape.convexPolytope.Face3D;
+import us.ihmc.euclid.shape.convexPolytope.HalfEdge3D;
+import us.ihmc.euclid.shape.convexPolytope.Vertex3D;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.tools.ConvexPolytope3DTroublesomeDataset;
-import us.ihmc.euclid.shape.convexPolytope.tools.EuclidPolytopeTools;
-import us.ihmc.euclid.shape.primitives.interfaces.Cylinder3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.Ellipsoid3DReadOnly;
+import us.ihmc.euclid.tools.EuclidCoreIOTools;
 import us.ihmc.euclid.tools.EuclidCoreRandomTools;
 import us.ihmc.euclid.tuple3D.Point3D;
+import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.tuple3D.interfaces.Tuple3DReadOnly;
 import us.ihmc.graphicsDescription.MeshDataGenerator;
@@ -45,33 +44,60 @@ import us.ihmc.javaFXToolkit.shapes.JavaFXMeshBuilder;
 
 public class ConvexPolytope3DVisualizer extends Application
 {
+   private final ConvexPolytope3DTroublesomeDataset dataset = new EPA_Dataset();
+   private final ConvexPolytope3D convexPolytope3D = dataset.getConvexPolytope3D();
+   private final Point3D troublesomePoint = dataset.getTroublesomePoint();
+   private final double constructionEpsilon = dataset.getConvexPolytope3D().getConstructionEpsilon();
+
+   public class EPA_Dataset extends ConvexPolytope3DTroublesomeDataset
+   {
+      public EPA_Dataset()
+      {
+         double constructionEpsilon = 0.0;
+         Vertex3D v0 = new Vertex3D( 0.06160041628342216600,  0.45457028156296264000,  0.20609897863669868000 );
+         Vertex3D v1 = new Vertex3D( 0.18045052005031104000,  0.36623995385144714000, -0.04369899248186826000 );
+         Vertex3D v2 = new Vertex3D( 0.66745033364347500000, -0.42798370867877900000,  0.94883253208013140000 );
+         Vertex3D v3 = new Vertex3D(-1.21298422578573950000,  0.19131372581296580000,  0.14495345121573910000 );
+         List<Face3D> faces = new ArrayList<>();
+         faces.add(new Face3D(Arrays.asList(new HalfEdge3D(v0, v1), new HalfEdge3D(v1, v2), new HalfEdge3D(v2, v0)), new Vector3D( 0.28606609434297940000,  0.23961404005679470000,  0.05137671157570477400 ), constructionEpsilon));
+         faces.add(new Face3D(Arrays.asList(new HalfEdge3D(v0, v3), new HalfEdge3D(v3, v1), new HalfEdge3D(v1, v0)), new Vector3D(-0.06035994903482430000,  0.32565580988662370000, -0.14387254809823460000 ), constructionEpsilon));
+         faces.add(new Face3D(Arrays.asList(new HalfEdge3D(v0, v2), new HalfEdge3D(v2, v3), new HalfEdge3D(v3, v0)), new Vector3D(-0.24949370633027800000,  0.90963176763352920000,  1.28438372430460860000 ), constructionEpsilon));
+         faces.add(new Face3D(Arrays.asList(new HalfEdge3D(v3, v2), new HalfEdge3D(v2, v1), new HalfEdge3D(v1, v3)), new Vector3D( 0.02378756102212287000, -1.47490161757694740000, -1.19188788778207840000 ), constructionEpsilon));
+         convexPolytope3D = new ConvexPolytope3D(faces, constructionEpsilon);
+         troublesomePoint.set(-0.39587000462122590000, -0.09761499076555857000,  0.94708292196562380000 );
+      }
+   }
+
    @Override
    public void start(Stage primaryStage) throws Exception
    {
       View3DFactory view3dFactory = new View3DFactory(600, 400);
-      FocusBasedCameraMouseEventHandler cameraController = view3dFactory.addCameraController(0.001, 100.0, true);
+      FocusBasedCameraMouseEventHandler cameraController = view3dFactory.addCameraController(0.0001, 100.0, true);
       cameraController.setMinLatitude(Double.NEGATIVE_INFINITY);
       cameraController.setMaxLatitude(Double.POSITIVE_INFINITY);
-      view3dFactory.addWorldCoordinateSystem(0.1);
+      view3dFactory.addWorldCoordinateSystem(0.5);
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
-      ConvexPolytope3DTroublesomeDataset dataset = new ConvexPolytope3DTroublesomeDataset_20190323_224417();
+      //      Point3D focusPoint = troublesomePoint;
+      //      cameraController.getTranslate().setX(focusPoint.getX());
+      //      cameraController.getTranslate().setY(focusPoint.getY());
+      //      cameraController.getTranslate().setZ(focusPoint.getZ());
+      //      convexPolytope3D.addVertex(troublesomePoint);
 
-      ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(dataset.getPointsBeforeIssue()),
-                                                               dataset.getConstructionEpsilon());
-      List<HalfEdge3DReadOnly> silhouette = EuclidPolytopeTools.computeSilhouette(convexPolytope3D.getFaces(), dataset.getTroublesomePoint(),
-                                                                                  dataset.getConstructionEpsilon());
-      List<Face3D> inPlaneFaces = EuclidPolytopeTools.computeInPlaneFacesAroundSilhouette(dataset.getTroublesomePoint(), silhouette,
-                                                                                          dataset.getConstructionEpsilon());
-
-      view3dFactory.addNodeToView(generateHalfEdge3DsMesh(silhouette, Color.ORANGERED, 0.00001));
-      view3dFactory.addNodeToView(generateFace3DsMesh(inPlaneFaces, Color.GREEN));
-      convexPolytope3D.addVertex(dataset.getTroublesomePoint());
       view3dFactory.addNodeToView(generateFace3DsMesh(convexPolytope3D.getFaces()));
       view3dFactory.addNodeToView(generateFace3DsNormalMesh(convexPolytope3D.getFaces()));
 
-      view3dFactory.addNodeToView(generatePointMesh(dataset.getTroublesomePoint(), Color.BLACK, 0.000025));
+      view3dFactory.addNodeToView(generateMultilineMesh(Arrays.asList(new Point3D(0.4789278257837637000, -1.0709997264316717000, -0.3921167138841577000),
+                                                                      new Point3D(-0.5706011857203901000, -1.5817801098497340000, -0.3254900162247995600),
+                                                                      new Point3D(-0.1226494165834033400, 0.4219890315821706000, 0.1456226472088930600),
+                                                                      new Point3D(0.1030819243869309800, -0.3550176957114557000, -0.1224997543555419500)),
+                                                        true, Color.ORANGE, 0.005));
+
+      view3dFactory.addNodeToView(generatePointMesh(troublesomePoint, Color.BLACK, 0.1));
+
+      convexPolytope3D.getFaces()
+                      .forEach(f -> System.out.println(convexPolytope3D.getFaces().indexOf(f) + "\t" + f.distance(new Point3D()) * f.distance(new Point3D())));
 
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);
@@ -101,14 +127,14 @@ public class ConvexPolytope3DVisualizer extends Application
          ccwFaceVertices.add(0, new Point3D(face.getCentroid()));
 
          MeshView outsideFaceNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(MeshDataGenerator.Polygon(ccwFaceVertices)));
-         outsideFaceNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println(face.toString()));
+         outsideFaceNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println("Index: " + faces.indexOf(face) + ": " + face.toString()));
          double hue = EuclidCoreRandomTools.nextDouble(new Random(face.hashCode()), 0.0, 360.0);
-         outsideFaceNode.setMaterial(new PhongMaterial(Color.hsb(hue, 0.9, 0.9, 0.7)));
+         outsideFaceNode.setMaterial(new PhongMaterial(Color.hsb(hue, 0.9, 0.9, 0.5)));
          group.getChildren().add(outsideFaceNode);
 
-         //         MeshView insideFaceNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(MeshDataGenerator.Polygon(cwFaceVertices)));
-         //         insideFaceNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println(face.toString()));
-         //         insideFaceNode.setMaterial(new PhongMaterial(Color.hsb(hue, 0.9, 0.9, 1.0).darker()));
+         MeshView insideFaceNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(MeshDataGenerator.Polygon(cwFaceVertices)));
+         insideFaceNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println("Index: " + faces.indexOf(face) + ": " + face.toString()));
+         insideFaceNode.setMaterial(new PhongMaterial(Color.hsb(hue, 0.9, 0.9, 1.0).darker()));
          //         group.getChildren().add(insideFaceNode);
       }
 
@@ -135,9 +161,10 @@ public class ConvexPolytope3DVisualizer extends Application
    {
       Group group = new Group();
 
-      for (Face3DReadOnly face : faces)
+      for (int i = 0; i < faces.size(); i++)
       {
-         double scale = Math.max(0.003, face.getEdges().stream().mapToDouble(HalfEdge3DReadOnly::length).max().getAsDouble());
+         Face3DReadOnly face = faces.get(i);
+         double scale = Math.max(0.00003, face.getEdges().stream().mapToDouble(HalfEdge3DReadOnly::length).max().getAsDouble());
          double height = 0.010 * scale;
          double radius = 0.005 * scale;
          AxisAngle orientation = EuclidGeometryTools.axisAngleFromZUpToVector3D(face.getNormal());
@@ -146,7 +173,7 @@ public class ConvexPolytope3DVisualizer extends Application
          cone = MeshDataHolder.rotate(cone, orientation);
          cone = MeshDataHolder.translate(cone, face.getCentroid());
          MeshView normalNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(cone));
-         normalNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println(face.toString()));
+         normalNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println("Index: " + faces.indexOf(face) + ": " + face.toString()));
          normalNode.setMaterial(new PhongMaterial(Color.hsb(hue, 0.9, 0.9, 1.0)));
          group.getChildren().add(normalNode);
       }
@@ -156,16 +183,13 @@ public class ConvexPolytope3DVisualizer extends Application
 
    public static Node generatePointMesh(Tuple3DReadOnly position, Color color, double size)
    {
-      Sphere sphere = new Sphere();
-      sphere.setRadius(size);
-      sphere.setMaterial(new PhongMaterial(color));
-      sphere.setTranslateX(position.getX());
-      sphere.setTranslateY(position.getY());
-      sphere.setTranslateZ(position.getZ());
-      return sphere;
+      MeshDataHolder sphereMeshData = MeshDataHolder.translate(MeshDataGenerator.Sphere(size, 64, 64), position);
+      MeshView node = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(sphereMeshData));
+      node.setMaterial(new PhongMaterial(color));
+      return node;
    }
 
-   public static Node generateHalfEdge3DsMesh(Collection<? extends HalfEdge3DReadOnly> edges, Color color, double width)
+   public static Node generateHalfEdge3DsMesh(List<? extends HalfEdge3DReadOnly> edges, Color color, double width)
    {
       Group group = new Group();
 
@@ -177,68 +201,53 @@ public class ConvexPolytope3DVisualizer extends Application
          MeshDataHolder line = MeshDataGenerator.Line(edge.getOrigin(), edge.getDestination(), width);
          MeshView edgeNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(line));
          edgeNode.setMaterial(new PhongMaterial(color));
-         edgeNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println(edge.toString()));
+         edgeNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println("Index: " + edges.indexOf(edge) + ": " + edge.toString()));
          group.getChildren().add(edgeNode);
       }
 
       return group;
    }
 
-   public static Node generateCylinder3DMesh(Cylinder3DReadOnly cylinder3D, Color color)
+   public static Node generateMultilineMesh(List<? extends Point3DReadOnly> multiline, boolean close, Color color, double width)
    {
-      MeshDataHolder mesh = MeshDataGenerator.Cylinder(cylinder3D.getRadius(), cylinder3D.getLength(), 128);
-      mesh = MeshDataHolder.rotate(mesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(cylinder3D.getAxis()));
-      mesh = MeshDataHolder.translate(mesh, cylinder3D.getBottomCenter());
-      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
-   }
+      Group group = new Group();
 
-   public static Node generateEllipsoid3DMesh(Ellipsoid3DReadOnly ellipsoid3D, Color color)
-   {
-      MeshDataHolder mesh = MeshDataGenerator.Ellipsoid(ellipsoid3D.getRadiusX(), ellipsoid3D.getRadiusY(), ellipsoid3D.getRadiusZ(), 128, 128);
-      mesh = MeshDataHolder.rotate(mesh, new AxisAngle(ellipsoid3D.getOrientation()));
-      mesh = MeshDataHolder.translate(mesh, ellipsoid3D.getPosition());
-      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
+      if (multiline == null)
+         return group;
+
+      if (multiline.size() < 2)
+         return group;
+
+      for (int i = 1; i < multiline.size(); i++)
+      {
+         Point3DReadOnly start = multiline.get(i - 1);
+         Point3DReadOnly end = multiline.get(i);
+         MeshDataHolder line = MeshDataGenerator.Line(start, end, width);
+         MeshView edgeNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(line));
+         edgeNode.setMaterial(new PhongMaterial(color));
+         group.getChildren().add(edgeNode);
+         edgeNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println("start: " + EuclidCoreIOTools.getTuple3DString(start) + ", end: "
+               + EuclidCoreIOTools.getTuple3DString(end)));
+      }
+
+      if (close)
+      {
+         Point3DReadOnly start = multiline.get(multiline.size() - 1);
+         Point3DReadOnly end = multiline.get(0);
+         MeshDataHolder line = MeshDataGenerator.Line(start, end, width);
+         MeshView edgeNode = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(line));
+         edgeNode.setMaterial(new PhongMaterial(color));
+         group.getChildren().add(edgeNode);
+         edgeNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> System.out.println("start: " + EuclidCoreIOTools.getTuple3DString(start) + ", end: "
+               + EuclidCoreIOTools.getTuple3DString(end)));
+      }
+
+      return group;
    }
 
    public static Color nextColor(Random random)
    {
       return Color.hsb(EuclidCoreRandomTools.nextDouble(random, 0.0, 360.0), 0.9, 0.9);
-   }
-
-   public static ConvexPolytope3D fromSupportingVertices(Random random, int numberOfSamples, SupportingVertexHolder supportingVertexHolder,
-                                                         double constructionEpsilon)
-   {
-      List<Point3DReadOnly> supportingVertices = IntStream.range(0, numberOfSamples)
-                                                          .mapToObj(i -> supportingVertexHolder.getSupportingVertex(EuclidCoreRandomTools.nextVector3D(random)))
-                                                          .collect(Collectors.toList());
-
-      try
-      {
-         ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(supportingVertices), constructionEpsilon);
-         return convexPolytope3D;
-      }
-      catch (Exception e1)
-      {
-         for (int i = 0; i < supportingVertices.size(); i++)
-         {
-            try
-            {
-               new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(supportingVertices.subList(0, i + 1)), constructionEpsilon);
-            }
-            catch (Exception e2)
-            {
-               System.out.println(ConvexPolytope3DTroublesomeDataset.generateDatasetAsString(supportingVertices.subList(0, i), supportingVertices.get(i),
-                                                                                             constructionEpsilon));
-               ThreadTools.sleep(500);
-               break;
-            }
-         }
-         throw e1;
-      }
    }
 
    public static void main(String[] args)
