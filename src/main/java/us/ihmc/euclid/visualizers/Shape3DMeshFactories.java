@@ -11,10 +11,13 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
+import javafx.scene.shape.TriangleMesh;
+import us.ihmc.euclid.Axis3D;
 import us.ihmc.euclid.axisAngle.AxisAngle;
 import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
 import us.ihmc.euclid.referenceFrame.ReferenceFrame;
 import us.ihmc.euclid.referenceFrame.interfaces.FrameShape3DBasics;
+import us.ihmc.euclid.shape.collision.interfaces.SupportingVertexHolder;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.Box3DReadOnly;
@@ -28,15 +31,23 @@ import us.ihmc.euclid.shape.primitives.interfaces.Sphere3DReadOnly;
 import us.ihmc.euclid.tools.EuclidCoreIOTools;
 import us.ihmc.euclid.tools.EuclidCoreRandomTools;
 import us.ihmc.euclid.tuple3D.Point3D;
+import us.ihmc.euclid.tuple3D.Point3D32;
+import us.ihmc.euclid.tuple3D.Vector3D;
+import us.ihmc.euclid.tuple3D.Vector3D32;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.tuple3D.interfaces.Tuple3DReadOnly;
+import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 import us.ihmc.graphicsDescription.MeshDataGenerator;
 import us.ihmc.graphicsDescription.MeshDataHolder;
+import us.ihmc.graphicsDescription.TexCoord2f;
 import us.ihmc.javaFXToolkit.graphics.JavaFXMeshDataInterpreter;
 import us.ihmc.javaFXToolkit.shapes.JavaFXMeshBuilder;
 
 public class Shape3DMeshFactories
 {
+   private static final double halfPi = 0.5 * Math.PI;
+   private static final double twoPi = 2.0 * Math.PI;
+
    public static Node toFrameShape3DMesh(FrameShape3DBasics shape3D, Color color)
    {
       FrameShape3DBasics copy = shape3D.copy();
@@ -255,6 +266,126 @@ public class Shape3DMeshFactories
       }
 
       return group;
+   }
+
+   public static Node toUVMesh(SupportingVertexHolder supportingVertexHolder, Color color)
+   {
+      return toUVMesh(supportingVertexHolder, color, 64, 64);
+   }
+
+   public static Node toUVMesh(SupportingVertexHolder supportingVertexHolder, Color color, int latitudeN, int longitudeN)
+   {
+      Vector3D supportDirection = new Vector3D();
+      Point3D32 points[] = new Point3D32[(latitudeN - 1) * longitudeN + 2];
+      Vector3D32[] normals = new Vector3D32[(latitudeN - 1) * longitudeN + 2];
+      TexCoord2f textPoints[] = new TexCoord2f[(latitudeN - 1) * longitudeN + 2];
+
+      for (int longitudeIndex = 0; longitudeIndex < longitudeN; longitudeIndex++)
+      {
+         float longitudeAngle = (float) (twoPi * ((float) longitudeIndex / (float) longitudeN));
+         float cosLongitude = (float) Math.cos(longitudeAngle);
+         float sinLongitude = (float) Math.sin(longitudeAngle);
+
+         for (int latitudeIndex = 1; latitudeIndex < latitudeN; latitudeIndex++)
+         {
+            float latitudeAngle = (float) (-halfPi + Math.PI * ((float) latitudeIndex / (float) latitudeN));
+            float cosLatitude = (float) Math.cos(latitudeAngle);
+            float sinLatitude = (float) Math.sin(latitudeAngle);
+
+            int currentIndex = (latitudeIndex - 1) * longitudeN + longitudeIndex;
+            supportDirection.set(cosLongitude * cosLatitude, sinLongitude * cosLatitude, sinLatitude);
+            points[currentIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirection));
+            normals[currentIndex] = new Vector3D32(estimateLocalNormal(supportingVertexHolder, supportDirection));
+
+            float textureX = (float) (longitudeAngle / twoPi);
+            float textureY = (float) (0.5 * sinLatitude + 0.5);
+            textPoints[currentIndex] = new TexCoord2f(textureX, textureY);
+         }
+      }
+
+      // South pole
+      int southPoleIndex = (latitudeN - 1) * longitudeN;
+      supportDirection.setAndNegate(Axis3D.Z);
+      points[southPoleIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirection));
+      normals[southPoleIndex] = new Vector3D32(estimateLocalNormal(supportingVertexHolder, supportDirection));
+      textPoints[southPoleIndex] = new TexCoord2f(0.5f, 0.0f);
+
+      // North pole
+      int northPoleIndex = (latitudeN - 1) * longitudeN + 1;
+      supportDirection.set(Axis3D.Z);
+      points[northPoleIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirection));
+      normals[northPoleIndex] = new Vector3D32(estimateLocalNormal(supportingVertexHolder, supportDirection));
+      textPoints[northPoleIndex] = new TexCoord2f(1.0f, 1.0f);
+
+      int numberOfTriangles = 2 * (latitudeN - 1) * longitudeN + 2 * longitudeN;
+      int[] triangleIndices = new int[3 * numberOfTriangles];
+
+      int index = 0;
+
+      // Mid-latitude faces
+      for (int latitudeIndex = 0; latitudeIndex < latitudeN - 2; latitudeIndex++)
+      {
+         for (int longitudeIndex = 0; longitudeIndex < longitudeN; longitudeIndex++)
+         {
+            int nextLongitudeIndex = (longitudeIndex + 1) % longitudeN;
+            int nextLatitudeIndex = (latitudeIndex + 1);
+
+            // Lower triangles
+            triangleIndices[index++] = latitudeIndex * longitudeN + longitudeIndex;
+            triangleIndices[index++] = latitudeIndex * longitudeN + nextLongitudeIndex;
+            triangleIndices[index++] = nextLatitudeIndex * longitudeN + longitudeIndex;
+            // Upper triangles
+            triangleIndices[index++] = latitudeIndex * longitudeN + nextLongitudeIndex;
+            triangleIndices[index++] = nextLatitudeIndex * longitudeN + nextLongitudeIndex;
+            triangleIndices[index++] = nextLatitudeIndex * longitudeN + longitudeIndex;
+         }
+      }
+
+      // South pole faces
+      for (int longitudeIndex = 0; longitudeIndex < longitudeN; longitudeIndex++)
+      {
+         int nextLongitudeIndex = (longitudeIndex + 1) % longitudeN;
+         triangleIndices[index++] = southPoleIndex;
+         triangleIndices[index++] = nextLongitudeIndex;
+         triangleIndices[index++] = longitudeIndex;
+      }
+
+      // North pole faces
+      for (int longitudeIndex = 0; longitudeIndex < longitudeN; longitudeIndex++)
+      {
+         int nextLongitudeIndex = (longitudeIndex + 1) % longitudeN;
+         triangleIndices[index++] = northPoleIndex;
+         triangleIndices[index++] = (latitudeN - 2) * longitudeN + longitudeIndex;
+         triangleIndices[index++] = (latitudeN - 2) * longitudeN + nextLongitudeIndex;
+      }
+
+      MeshDataHolder rawMesh = new MeshDataHolder(points, textPoints, triangleIndices, normals);
+      TriangleMesh jfxMesh = JavaFXMeshDataInterpreter.interpretMeshData(rawMesh, true);
+      MeshView node = new MeshView(jfxMesh);
+      node.setMaterial(new PhongMaterial(color));
+      return node;
+   }
+
+   private static Vector3DReadOnly estimateLocalNormal(SupportingVertexHolder supportingVertexHolder, Vector3DReadOnly supportDirection)
+   {
+      Vector3D rotatedSupportDirection = new Vector3D();
+      Vector3D initialSupportDirection = new Vector3D(supportDirection);
+      initialSupportDirection.normalize();
+      Vector3D orthogonal = EuclidCoreRandomTools.nextOrthogonalVector3D(new Random(), supportDirection, true);
+      double deviationAngle = 1.0e-3;
+      AxisAngle axisAngleOrthogonal = new AxisAngle(orthogonal, deviationAngle);
+      AxisAngle axisAngleNormal = new AxisAngle(supportDirection, -twoPi / 3.0);
+
+      axisAngleOrthogonal.transform(supportDirection, rotatedSupportDirection);
+      Point3DReadOnly p1 = supportingVertexHolder.getSupportingVertex(rotatedSupportDirection);
+      axisAngleNormal.transform(axisAngleOrthogonal.getAxis());
+      axisAngleOrthogonal.transform(supportDirection, rotatedSupportDirection);
+      Point3DReadOnly p2 = supportingVertexHolder.getSupportingVertex(rotatedSupportDirection);
+      axisAngleNormal.transform(axisAngleOrthogonal.getAxis());
+      axisAngleOrthogonal.transform(supportDirection, rotatedSupportDirection);
+      Point3DReadOnly p3 = supportingVertexHolder.getSupportingVertex(rotatedSupportDirection);
+      Vector3D normal = EuclidGeometryTools.normal3DFromThreePoint3Ds(p1, p2, p3);
+      return normal == null ? supportDirection : normal;
    }
 
    public static Color nextColor(Random random)
