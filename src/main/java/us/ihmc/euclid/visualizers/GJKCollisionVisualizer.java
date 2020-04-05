@@ -27,6 +27,7 @@ import us.ihmc.euclid.shape.convexPolytope.tools.ConvexPolytope3DTroublesomeData
 import us.ihmc.euclid.shape.primitives.PointShape3D;
 import us.ihmc.euclid.shape.primitives.Ramp3D;
 import us.ihmc.euclid.shape.primitives.interfaces.Box3DReadOnly;
+import us.ihmc.euclid.shape.primitives.interfaces.Capsule3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.Cylinder3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.Ellipsoid3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.PointShape3DReadOnly;
@@ -136,6 +137,8 @@ public class GJKCollisionVisualizer extends Application
          return generateRamp3DMesh((Ramp3DReadOnly) shape3D, color);
       if (shape3D instanceof Ellipsoid3DReadOnly)
          return generateEllipsoid3DMesh((Ellipsoid3DReadOnly) shape3D, color);
+      if (shape3D instanceof Capsule3DReadOnly)
+         return generateCapsule3DMesh((Capsule3DReadOnly) shape3D, color);
       throw new UnsupportedOperationException("Unsupported shape " + shape3D);
    }
 
@@ -154,6 +157,16 @@ public class GJKCollisionVisualizer extends Application
       MeshDataHolder mesh = MeshDataGenerator.Cube(box3D.getSizeX(), box3D.getSizeY(), box3D.getSizeZ(), true);
       mesh = MeshDataHolder.rotate(mesh, new AxisAngle(box3D.getOrientation()));
       mesh = MeshDataHolder.translate(mesh, box3D.getPosition());
+      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
+      meshView.setMaterial(new PhongMaterial(color));
+      return meshView;
+   }
+
+   public static Node generateCapsule3DMesh(Capsule3DReadOnly capsule3D, Color color)
+   {
+      MeshDataHolder mesh = MeshDataGenerator.Capsule(capsule3D.getLength(), capsule3D.getRadius(), capsule3D.getRadius(), capsule3D.getRadius(), 64, 64);
+      mesh = MeshDataHolder.rotate(mesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(capsule3D.getAxis()));
+      mesh = MeshDataHolder.translate(mesh, capsule3D.getPosition());
       MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
       meshView.setMaterial(new PhongMaterial(color));
       return meshView;

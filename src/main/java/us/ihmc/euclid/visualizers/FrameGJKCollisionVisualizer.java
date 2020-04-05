@@ -6,22 +6,21 @@ import javafx.scene.AmbientLight;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import us.ihmc.euclid.geometry.interfaces.Vertex3DSupplier;
 import us.ihmc.euclid.matrix.RotationMatrix;
-import us.ihmc.euclid.referenceFrame.FrameBox3D;
+import us.ihmc.euclid.referenceFrame.FrameCapsule3D;
 import us.ihmc.euclid.referenceFrame.FrameRamp3D;
 import us.ihmc.euclid.referenceFrame.ReferenceFrame;
 import us.ihmc.euclid.referenceFrame.collision.EuclidFrameShape3DCollisionResult;
 import us.ihmc.euclid.referenceFrame.collision.gjk.FrameGilbertJohnsonKeerthiCollisionDetector;
-import us.ihmc.euclid.referenceFrame.interfaces.FixedFrameBox3DBasics;
-import us.ihmc.euclid.referenceFrame.interfaces.FixedFrameRamp3DBasics;
-import us.ihmc.euclid.referenceFrame.interfaces.FrameBox3DReadOnly;
-import us.ihmc.euclid.referenceFrame.interfaces.FrameRamp3DReadOnly;
 import us.ihmc.euclid.referenceFrame.interfaces.FrameShape3DBasics;
 import us.ihmc.euclid.referenceFrame.tools.ReferenceFrameTools;
 import us.ihmc.euclid.shape.collision.EuclidShape3DCollisionResult;
 import us.ihmc.euclid.shape.collision.gjk.GilbertJohnsonKeerthiCollisionDetector;
+import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3D;
 import us.ihmc.euclid.transform.RigidBodyTransform;
 import us.ihmc.euclid.tuple3D.Point3D;
+import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
 import us.ihmc.javaFXToolkit.scenes.View3DFactory;
 
@@ -43,57 +42,57 @@ public class FrameGJKCollisionVisualizer extends Application
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
-      ReferenceFrame frameA = ReferenceFrameTools.constructFrameWithUnchangingTransformToParent("frameA",
-                                                                                                worldFrame,
-                                                                                                new RigidBodyTransform(0.266752199359763130000,
-                                                                                                                       0.943854110092642300000,
-                                                                                                                       -0.194891464661629800000,
-                                                                                                                       0.110356424430389510000,
-                                                                                                                       0.756945120948152800000,
-                                                                                                                       -0.080009823889612490000,
-                                                                                                                       0.648561879818679700000,
-                                                                                                                       -0.042245380800103316000,
-                                                                                                                       0.596554564151105600000,
-                                                                                                                       -0.320527451152595200000,
-                                                                                                                       -0.735788560014427700000,
-                                                                                                                       -1.143964174244656000000));
-      ReferenceFrame frameB = ReferenceFrameTools.constructFrameWithUnchangingTransformToParent("frameB", worldFrame, new RigidBodyTransform());
+      RigidBodyTransform transformA = new RigidBodyTransform(0.9979046324088627000,
+                                                             -0.0633693092670992700,
+                                                             -0.0130642741835739760,
+                                                             0.7443977771656639000,
+                                                             0.0642935947651630800,
+                                                             0.9938321600326341000,
+                                                             0.0903546974818785800,
+                                                             0.5727110955631666000,
+                                                             0.0072579810626555420,
+                                                             -0.0910053203273277100,
+                                                             0.9958239570240388000,
+                                                             -0.7135602367629830000);
+      RigidBodyTransform transformB = new RigidBodyTransform(0.8181030810359122000,
+                                                             -0.4435472606074187000,
+                                                             -0.3660234642850132000,
+                                                             -0.8255052417260503000,
+                                                             0.5443712066093924000,
+                                                             0.8024906551443900000,
+                                                             0.2442718522887194500,
+                                                             0.4188216382384691300,
+                                                             0.1853842987261379000,
+                                                             -0.3990921898679330400,
+                                                             0.8979744349213044000,
+                                                             -0.4012192076505227000);
+      ReferenceFrame frameA = ReferenceFrameTools.constructFrameWithUnchangingTransformToParent("frameA", worldFrame, transformA);
+      ReferenceFrame frameB = ReferenceFrameTools.constructFrameWithUnchangingTransformToParent("frameB", worldFrame, transformB);
 
-      RotationMatrix orientationA = new RotationMatrix();
-      orientationA.setUnsafe(0.347962419350583700000,
-                             -0.763257890834793200000,
-                             0.544389150147310900000,
-                             0.550092212145841300000,
-                             0.636431331143421000000,
-                             0.540697437459720200000,
-                             -0.759157897183572300000,
-                             0.111321843397583550000,
-                             0.641316407342257600000);
-      FrameRamp3D shapeA = new FrameRamp3D(frameA,
-                                           new Point3D(0.480594886854139400000, -0.595094351811325400000, -0.268769645145817000000),
-                                           orientationA,
-                                           0.383334226382238130000,
-                                           0.198316076990102900000,
-                                           0.817079807458062300000);
+      FrameCapsule3D shapeA = new FrameCapsule3D(frameA,
+                                                 new Point3D(0.0740430166234076200, 0.3979202226247427000, 0.2158481198537354200),
+                                                 new Vector3D(0.7989355029115155000, 0.1156035416199616400, -0.5902015616316562000),
+                                                 0.2612493918222833500,
+                                                 0.2733605158455267000);
       RotationMatrix orientationB = new RotationMatrix();
-      orientationB.setUnsafe(0.408196431800644600000,
-                             0.334105731006358600000,
-                             0.849558140196378100000,
-                             -0.644161194106022400000,
-                             0.764840077583117500000,
-                             0.008718470654569932000,
-                             -0.646863222847864100000,
-                             -0.550811234663344500000,
-                             0.527422937210278100000);
-      FrameBox3D shapeB = new FrameBox3D(frameB,
-                                         new Point3D(-0.697733308154290700000, 0.432362483157936900000, -0.277329711388412100000),
-                                         orientationB,
-                                         0.562226605854888500000,
-                                         0.109060911353156880000,
-                                         0.761961161606297300000);
+      orientationB.setUnsafe(0.1898011460775145300,
+                             0.8468316901642968000,
+                             0.4968416382320852700,
+                             -0.7467763481264588000,
+                             0.4530451734407276000,
+                             -0.4869036421110147000,
+                             -0.6374171403614528000,
+                             -0.2786147148941373000,
+                             0.7183823702025869000);
+      FrameRamp3D shapeB = new FrameRamp3D(frameB,
+                                           new Point3D(-0.8608149443370450000, -0.9512759705732754000, 0.3626654411902035000),
+                                           orientationB,
+                                           0.4637792371183097000,
+                                           0.4203001274368498600,
+                                           0.868342026938451300);
 
-      view3dFactory.addNodeToView(generateFrameRamp3DMesh(shapeA, Color.AQUAMARINE));
-      view3dFactory.addNodeToView(generateFrameBox3DMesh(shapeB, Color.CORNFLOWERBLUE));
+      view3dFactory.addNodeToView(generateFrameShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.5)));
+      view3dFactory.addNodeToView(generateFrameShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.5)));
 
       EuclidFrameShape3DCollisionResult frameResult = frameGJKDetector.evaluateCollision(shapeA, shapeB);
       frameResult.getPointOnA().changeFrame(worldFrame);
@@ -103,7 +102,8 @@ public class FrameGJKCollisionVisualizer extends Application
       FrameShape3DBasics shapeBInDetectorFrame = shapeB.copy();
       shapeAInDetectorFrame.changeFrame(frameGJKDetector.getDetectorFrame());
       shapeBInDetectorFrame.changeFrame(frameGJKDetector.getDetectorFrame());
-      EuclidShape3DCollisionResult framelessResult = framelessGJKDetector.evaluateCollision(shapeAInDetectorFrame, shapeBInDetectorFrame);
+      EuclidShape3DCollisionResult framelessResult = new EuclidShape3DCollisionResult();
+      framelessGJKDetector.evaluateCollision(shapeAInDetectorFrame, shapeBInDetectorFrame, framelessResult);
       frameGJKDetector.getDetectorFrame().transformFromThisToDesiredFrame(worldFrame, framelessResult);
 
       System.out.println("Frame:\n" + frameResult);
@@ -111,13 +111,18 @@ public class FrameGJKCollisionVisualizer extends Application
 
       System.out.println(frameResult.getPointOnA().distance(frameResult.getPointOnB()));
       System.out.println(framelessResult.getPointOnA().distance(framelessResult.getPointOnB()));
-      
 
       view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(framelessResult.getPointOnA(), Color.ORANGE, 0.01));
       view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(framelessResult.getPointOnB(), Color.ORANGERED, 0.01));
 
       view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(frameResult.getPointOnA(), Color.AQUAMARINE, 0.01));
       view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(frameResult.getPointOnB(), Color.CADETBLUE, 0.01));
+
+      ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(frameGJKDetector.getSimplex().getVertices()), 1.0e-12);
+      convexPolytope3D.applyTransform(shapeB.getPose());
+      frameGJKDetector.getDetectorFrame().transformFromThisToDesiredFrame(worldFrame, convexPolytope3D);
+      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generateFace3DsMesh(convexPolytope3D.getFaces()));
+      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generateFace3DsNormalMesh(convexPolytope3D.getFaces()));
 
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);
@@ -132,18 +137,11 @@ public class FrameGJKCollisionVisualizer extends Application
       Platform.exit();
    }
 
-   public static Node generateFrameRamp3DMesh(FrameRamp3DReadOnly ramp3D, Color color)
+   public static Node generateFrameShape3DMesh(FrameShape3DBasics shape3D, Color color)
    {
-      FixedFrameRamp3DBasics copy = ramp3D.copy();
-      ramp3D.getReferenceFrame().transformFromThisToDesiredFrame(worldFrame, copy);
-      return GJKCollisionVisualizer.generateRamp3DMesh(copy, color);
-   }
-
-   public static Node generateFrameBox3DMesh(FrameBox3DReadOnly ramp3D, Color color)
-   {
-      FixedFrameBox3DBasics copy = ramp3D.copy();
-      ramp3D.getReferenceFrame().transformFromThisToDesiredFrame(worldFrame, copy);
-      return GJKCollisionVisualizer.generateBox3DMesh(copy, color);
+      FrameShape3DBasics copy = shape3D.copy();
+      copy.changeFrame(worldFrame);
+      return GJKCollisionVisualizer.generateShape3DMesh(copy, color);
    }
 
    public static void main(String[] args)
