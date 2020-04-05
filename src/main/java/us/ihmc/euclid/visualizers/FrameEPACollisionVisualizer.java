@@ -3,7 +3,6 @@ package us.ihmc.euclid.visualizers;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.AmbientLight;
-import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import us.ihmc.euclid.matrix.RotationMatrix;
@@ -110,17 +109,17 @@ public class FrameEPACollisionVisualizer extends Application
       System.out.println(frameResult.getPointOnA().distance(frameResult.getPointOnB()));
       System.out.println(framelessResult.getPointOnA().distance(framelessResult.getPointOnB()));
 
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(framelessResult.getPointOnA(), Color.ORANGE, 0.01));
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(framelessResult.getPointOnB(), Color.ORANGERED, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(framelessResult.getPointOnA(), Color.ORANGE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(framelessResult.getPointOnB(), Color.ORANGERED, 0.01));
 
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(frameResult.getPointOnA(), Color.AQUAMARINE, 0.01));
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(frameResult.getPointOnB(), Color.CADETBLUE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(frameResult.getPointOnA(), Color.AQUAMARINE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(frameResult.getPointOnB(), Color.CADETBLUE, 0.01));
 
-      view3dFactory.addNodeToView(generateFrameShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.5)));
-      view3dFactory.addNodeToView(generateFrameShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.5)));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toFrameShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.5)));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toFrameShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.5)));
 
       EPAConvexPolytope3D polytope = new EPAConvexPolytope3D(frameEPADetector.getClosestFace());
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generateFace3DsMesh(polytope.getFaces()));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(polytope.getFaces()));
 
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);
@@ -133,13 +132,6 @@ public class FrameEPACollisionVisualizer extends Application
    public void stop()
    {
       Platform.exit();
-   }
-
-   public static Node generateFrameShape3DMesh(FrameShape3DBasics shape3D, Color color)
-   {
-      FrameShape3DBasics copy = shape3D.copy();
-      copy.changeFrame(worldFrame);
-      return GJKCollisionVisualizer.generateShape3DMesh(copy, color);
    }
 
    public static void main(String[] args)

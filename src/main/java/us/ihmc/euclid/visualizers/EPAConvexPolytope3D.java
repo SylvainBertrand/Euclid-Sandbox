@@ -10,7 +10,6 @@ import us.ihmc.euclid.geometry.interfaces.BoundingBox3DReadOnly;
 import us.ihmc.euclid.shape.collision.epa.EPAFace3D;
 import us.ihmc.euclid.shape.collision.epa.EPAHalfEdge3D;
 import us.ihmc.euclid.shape.collision.epa.EPAVertex3D;
-import us.ihmc.euclid.shape.collision.epa.ExpandingPolytopeAlgorithm;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.ConvexPolytope3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;

@@ -14,9 +14,7 @@ import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
 import us.ihmc.commons.thread.ThreadTools;
-import us.ihmc.euclid.axisAngle.AxisAngle;
 import us.ihmc.euclid.geometry.interfaces.Vertex3DSupplier;
-import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
 import us.ihmc.euclid.matrix.RotationMatrix;
 import us.ihmc.euclid.shape.collision.EuclidShape3DCollisionResult;
 import us.ihmc.euclid.shape.collision.EuclidShapeCollisionTools;
@@ -26,21 +24,10 @@ import us.ihmc.euclid.shape.convexPolytope.ConvexPolytope3D;
 import us.ihmc.euclid.shape.convexPolytope.tools.ConvexPolytope3DTroublesomeDataset;
 import us.ihmc.euclid.shape.primitives.PointShape3D;
 import us.ihmc.euclid.shape.primitives.Ramp3D;
-import us.ihmc.euclid.shape.primitives.interfaces.Box3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.Capsule3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.Cylinder3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.Ellipsoid3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.PointShape3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.Ramp3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.Shape3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.Sphere3DReadOnly;
 import us.ihmc.euclid.tools.EuclidCoreRandomTools;
 import us.ihmc.euclid.tuple3D.Point3D;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
-import us.ihmc.graphicsDescription.MeshDataGenerator;
-import us.ihmc.graphicsDescription.MeshDataHolder;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
-import us.ihmc.javaFXToolkit.graphics.JavaFXMeshDataInterpreter;
 import us.ihmc.javaFXToolkit.scenes.View3DFactory;
 import us.ihmc.javaFXToolkit.shapes.JavaFXMeshBuilder;
 
@@ -80,19 +67,19 @@ public class GJKCollisionVisualizer extends Application
       //      gjkDetector.evaluateCollision((SupportingVertexHolder) shapeA, (SupportingVertexHolder) shapeB, result);
       EuclidShapeCollisionTools.evaluatePointShape3DRamp3DCollision(shapeA, shapeB, result);
       System.out.println("Expected: " + result);
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(result.getPointOnA(), Color.ORANGE, 0.01));
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(result.getPointOnB(), Color.ORANGERED, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(result.getPointOnA(), Color.ORANGE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(result.getPointOnB(), Color.ORANGERED, 0.01));
 
       EuclidShape3DCollisionResult gjkResult = gjkDetector.evaluateCollision(shapeB, shapeA);
       ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(gjkDetector.getSimplex().getVertices()), 1.0e-12);
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generateFace3DsMesh(convexPolytope3D.getFaces()));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(convexPolytope3D.getFaces()));
       //      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generateFace3DsNormalMesh(convexPolytope3D.getFaces()));
       System.out.println("Actual: " + gjkResult);
 
-      view3dFactory.addNodeToView(generateShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.7)));
-      view3dFactory.addNodeToView(generateShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.7)));
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(gjkResult.getPointOnA(), Color.AQUAMARINE, 0.01));
-      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(gjkResult.getPointOnB(), Color.CADETBLUE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.7)));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.7)));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(gjkResult.getPointOnA(), Color.AQUAMARINE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(gjkResult.getPointOnB(), Color.CADETBLUE, 0.01));
 
       //      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(new Point3D(0.7241694221106871000, 0.4841639275556230400, 0.7683243967949757000),
       //                                                                               Color.BLACK,
@@ -121,84 +108,6 @@ public class GJKCollisionVisualizer extends Application
       }
 
       MeshView meshView = new MeshView(meshBuilder.generateMesh());
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
-   }
-
-   public static Node generateShape3DMesh(Shape3DReadOnly shape3D, Color color)
-   {
-      if (shape3D instanceof PointShape3DReadOnly)
-         return generatePointShape3DMesh((PointShape3DReadOnly) shape3D, color);
-      if (shape3D instanceof Sphere3DReadOnly)
-         return generateSphere3DMesh((Sphere3DReadOnly) shape3D, color);
-      if (shape3D instanceof Box3DReadOnly)
-         return generateBox3DMesh((Box3DReadOnly) shape3D, color);
-      if (shape3D instanceof Ramp3DReadOnly)
-         return generateRamp3DMesh((Ramp3DReadOnly) shape3D, color);
-      if (shape3D instanceof Ellipsoid3DReadOnly)
-         return generateEllipsoid3DMesh((Ellipsoid3DReadOnly) shape3D, color);
-      if (shape3D instanceof Capsule3DReadOnly)
-         return generateCapsule3DMesh((Capsule3DReadOnly) shape3D, color);
-      throw new UnsupportedOperationException("Unsupported shape " + shape3D);
-   }
-
-   public static Node generatePointShape3DMesh(PointShape3DReadOnly pointShape3D, Color color)
-   {
-      return ConvexPolytope3DVisualizer.generatePointMesh(pointShape3D, color, 0.01);
-   }
-
-   public static Node generateSphere3DMesh(Sphere3DReadOnly sphere3D, Color color)
-   {
-      return ConvexPolytope3DVisualizer.generatePointMesh(sphere3D.getPosition(), color, sphere3D.getRadius());
-   }
-
-   public static Node generateBox3DMesh(Box3DReadOnly box3D, Color color)
-   {
-      MeshDataHolder mesh = MeshDataGenerator.Cube(box3D.getSizeX(), box3D.getSizeY(), box3D.getSizeZ(), true);
-      mesh = MeshDataHolder.rotate(mesh, new AxisAngle(box3D.getOrientation()));
-      mesh = MeshDataHolder.translate(mesh, box3D.getPosition());
-      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
-   }
-
-   public static Node generateCapsule3DMesh(Capsule3DReadOnly capsule3D, Color color)
-   {
-      MeshDataHolder mesh = MeshDataGenerator.Capsule(capsule3D.getLength(), capsule3D.getRadius(), capsule3D.getRadius(), capsule3D.getRadius(), 64, 64);
-      mesh = MeshDataHolder.rotate(mesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(capsule3D.getAxis()));
-      mesh = MeshDataHolder.translate(mesh, capsule3D.getPosition());
-      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
-   }
-
-   public static Node generateRamp3DMesh(Ramp3DReadOnly ramp3D, Color color)
-   {
-      MeshDataHolder mesh = MeshDataGenerator.Wedge(ramp3D.getSizeX(), ramp3D.getSizeY(), ramp3D.getSizeZ());
-      mesh = MeshDataHolder.translate(mesh, (float) (0.5 * ramp3D.getSizeX()), 0.0f, 0.0f);
-      mesh = MeshDataHolder.rotate(mesh, new AxisAngle(ramp3D.getOrientation()));
-      mesh = MeshDataHolder.translate(mesh, ramp3D.getPosition());
-      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
-   }
-
-   public static Node generateEllipsoid3DMesh(Ellipsoid3DReadOnly ellipsoid3D, Color color)
-   {
-      MeshDataHolder mesh = MeshDataGenerator.Ellipsoid(ellipsoid3D.getRadiusX(), ellipsoid3D.getRadiusY(), ellipsoid3D.getRadiusZ(), 128, 128);
-      mesh = MeshDataHolder.rotate(mesh, new AxisAngle(ellipsoid3D.getOrientation()));
-      mesh = MeshDataHolder.translate(mesh, ellipsoid3D.getPosition());
-      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
-      meshView.setMaterial(new PhongMaterial(color));
-      return meshView;
-   }
-
-   public static Node generateCylinder3DMesh(Cylinder3DReadOnly cylinder3D, Color color)
-   {
-      MeshDataHolder mesh = MeshDataGenerator.Cylinder(cylinder3D.getRadius(), cylinder3D.getLength(), 128);
-      mesh = MeshDataHolder.rotate(mesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(cylinder3D.getAxis()));
-      mesh = MeshDataHolder.translate(mesh, cylinder3D.getBottomCenter());
-      MeshView meshView = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(mesh));
       meshView.setMaterial(new PhongMaterial(color));
       return meshView;
    }
