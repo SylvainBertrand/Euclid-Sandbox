@@ -12,7 +12,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.scene.shape.TriangleMesh;
-import us.ihmc.euclid.Axis3D;
 import us.ihmc.euclid.axisAngle.AxisAngle;
 import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
 import us.ihmc.euclid.referenceFrame.ReferenceFrame;
@@ -32,11 +31,9 @@ import us.ihmc.euclid.tools.EuclidCoreIOTools;
 import us.ihmc.euclid.tools.EuclidCoreRandomTools;
 import us.ihmc.euclid.tuple3D.Point3D;
 import us.ihmc.euclid.tuple3D.Point3D32;
-import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.euclid.tuple3D.Vector3D32;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.tuple3D.interfaces.Tuple3DReadOnly;
-import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 import us.ihmc.graphicsDescription.MeshDataGenerator;
 import us.ihmc.graphicsDescription.MeshDataHolder;
 import us.ihmc.graphicsDescription.TexCoord2f;
@@ -74,12 +71,12 @@ public class Shape3DMeshFactories
 
    public static Node toPointShape3DMesh(PointShape3DReadOnly pointShape3D, Color color)
    {
-      return Shape3DMeshFactories.togeneratePointMesh(pointShape3D, color, 0.01);
+      return Shape3DMeshFactories.toPointMesh(pointShape3D, color, 0.01);
    }
 
    public static Node toSphere3DMesh(Sphere3DReadOnly sphere3D, Color color)
    {
-      return Shape3DMeshFactories.togeneratePointMesh(sphere3D.getPosition(), color, sphere3D.getRadius());
+      return Shape3DMeshFactories.toPointMesh(sphere3D.getPosition(), color, sphere3D.getRadius());
    }
 
    public static Node toBox3DMesh(Box3DReadOnly box3D, Color color)
@@ -123,7 +120,7 @@ public class Shape3DMeshFactories
       return meshView;
    }
 
-   public static Node togenerateCylinder3DMesh(Cylinder3DReadOnly cylinder3D, Color color)
+   public static Node toCylinder3DMesh(Cylinder3DReadOnly cylinder3D, Color color)
    {
       MeshDataHolder mesh = MeshDataGenerator.Cylinder(cylinder3D.getRadius(), cylinder3D.getLength(), 128);
       mesh = MeshDataHolder.rotate(mesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(cylinder3D.getAxis()));
@@ -162,7 +159,7 @@ public class Shape3DMeshFactories
       return group;
    }
 
-   public static Node generateFace3DsMesh(List<? extends Face3DReadOnly> faces, Color color)
+   public static Node toFace3DsMesh(List<? extends Face3DReadOnly> faces, Color color)
    {
       JavaFXMeshBuilder meshBuilder = new JavaFXMeshBuilder();
 
@@ -202,7 +199,7 @@ public class Shape3DMeshFactories
       return group;
    }
 
-   public static Node togeneratePointMesh(Tuple3DReadOnly position, Color color, double size)
+   public static Node toPointMesh(Tuple3DReadOnly position, Color color, double size)
    {
       MeshDataHolder sphereMeshData = MeshDataHolder.translate(MeshDataGenerator.Sphere(size, 64, 64), position);
       MeshView node = new MeshView(JavaFXMeshDataInterpreter.interpretMeshData(sphereMeshData));
@@ -268,16 +265,20 @@ public class Shape3DMeshFactories
       return group;
    }
 
+   public enum UVMeshType
+   {
+      HULL, SUPPORT_VERTICES, SUPPORT_DIRECTIONS
+   };
+
    public static Node toUVMesh(SupportingVertexHolder supportingVertexHolder, Color color)
    {
-      return toUVMesh(supportingVertexHolder, color, 64, 64);
+      return toUVMesh(supportingVertexHolder, color, 256, 256, UVMeshType.HULL);
    }
 
-   public static Node toUVMesh(SupportingVertexHolder supportingVertexHolder, Color color, int latitudeN, int longitudeN)
+   public static Node toUVMesh(SupportingVertexHolder supportingVertexHolder, Color color, int latitudeN, int longitudeN, UVMeshType meshType)
    {
-      Vector3D supportDirection = new Vector3D();
+      Vector3D32[] supportDirections = new Vector3D32[(latitudeN - 1) * longitudeN + 2];
       Point3D32 points[] = new Point3D32[(latitudeN - 1) * longitudeN + 2];
-      Vector3D32[] normals = new Vector3D32[(latitudeN - 1) * longitudeN + 2];
       TexCoord2f textPoints[] = new TexCoord2f[(latitudeN - 1) * longitudeN + 2];
 
       for (int longitudeIndex = 0; longitudeIndex < longitudeN; longitudeIndex++)
@@ -293,9 +294,8 @@ public class Shape3DMeshFactories
             float sinLatitude = (float) Math.sin(latitudeAngle);
 
             int currentIndex = (latitudeIndex - 1) * longitudeN + longitudeIndex;
-            supportDirection.set(cosLongitude * cosLatitude, sinLongitude * cosLatitude, sinLatitude);
-            points[currentIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirection));
-            normals[currentIndex] = new Vector3D32(estimateLocalNormal(supportingVertexHolder, supportDirection));
+            supportDirections[currentIndex] = new Vector3D32(cosLongitude * cosLatitude, sinLongitude * cosLatitude, sinLatitude);
+            points[currentIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirections[currentIndex]));
 
             float textureX = (float) (longitudeAngle / twoPi);
             float textureY = (float) (0.5 * sinLatitude + 0.5);
@@ -305,16 +305,14 @@ public class Shape3DMeshFactories
 
       // South pole
       int southPoleIndex = (latitudeN - 1) * longitudeN;
-      supportDirection.setAndNegate(Axis3D.Z);
-      points[southPoleIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirection));
-      normals[southPoleIndex] = new Vector3D32(estimateLocalNormal(supportingVertexHolder, supportDirection));
+      supportDirections[southPoleIndex] = new Vector3D32(0.0f, 0.0f, -1.0f);
+      points[southPoleIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirections[southPoleIndex]));
       textPoints[southPoleIndex] = new TexCoord2f(0.5f, 0.0f);
 
       // North pole
       int northPoleIndex = (latitudeN - 1) * longitudeN + 1;
-      supportDirection.set(Axis3D.Z);
-      points[northPoleIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirection));
-      normals[northPoleIndex] = new Vector3D32(estimateLocalNormal(supportingVertexHolder, supportDirection));
+      supportDirections[northPoleIndex] = new Vector3D32(0.0f, 0.0f, 1.0f);
+      points[northPoleIndex] = new Point3D32(supportingVertexHolder.getSupportingVertex(supportDirections[northPoleIndex]));
       textPoints[northPoleIndex] = new TexCoord2f(1.0f, 1.0f);
 
       int numberOfTriangles = 2 * (latitudeN - 1) * longitudeN + 2 * longitudeN;
@@ -359,33 +357,44 @@ public class Shape3DMeshFactories
          triangleIndices[index++] = (latitudeN - 2) * longitudeN + nextLongitudeIndex;
       }
 
-      MeshDataHolder rawMesh = new MeshDataHolder(points, textPoints, triangleIndices, normals);
-      TriangleMesh jfxMesh = JavaFXMeshDataInterpreter.interpretMeshData(rawMesh, true);
-      MeshView node = new MeshView(jfxMesh);
-      node.setMaterial(new PhongMaterial(color));
-      return node;
-   }
-
-   private static Vector3DReadOnly estimateLocalNormal(SupportingVertexHolder supportingVertexHolder, Vector3DReadOnly supportDirection)
-   {
-      Vector3D rotatedSupportDirection = new Vector3D();
-      Vector3D initialSupportDirection = new Vector3D(supportDirection);
-      initialSupportDirection.normalize();
-      Vector3D orthogonal = EuclidCoreRandomTools.nextOrthogonalVector3D(new Random(), supportDirection, true);
-      double deviationAngle = 1.0e-3;
-      AxisAngle axisAngleOrthogonal = new AxisAngle(orthogonal, deviationAngle);
-      AxisAngle axisAngleNormal = new AxisAngle(supportDirection, -twoPi / 3.0);
-
-      axisAngleOrthogonal.transform(supportDirection, rotatedSupportDirection);
-      Point3DReadOnly p1 = supportingVertexHolder.getSupportingVertex(rotatedSupportDirection);
-      axisAngleNormal.transform(axisAngleOrthogonal.getAxis());
-      axisAngleOrthogonal.transform(supportDirection, rotatedSupportDirection);
-      Point3DReadOnly p2 = supportingVertexHolder.getSupportingVertex(rotatedSupportDirection);
-      axisAngleNormal.transform(axisAngleOrthogonal.getAxis());
-      axisAngleOrthogonal.transform(supportDirection, rotatedSupportDirection);
-      Point3DReadOnly p3 = supportingVertexHolder.getSupportingVertex(rotatedSupportDirection);
-      Vector3D normal = EuclidGeometryTools.normal3DFromThreePoint3Ds(p1, p2, p3);
-      return normal == null ? supportDirection : normal;
+      if (meshType == UVMeshType.HULL)
+      {
+         MeshDataHolder rawMesh = new MeshDataHolder(points, textPoints, triangleIndices, supportDirections);
+         TriangleMesh jfxMesh = JavaFXMeshDataInterpreter.interpretMeshData(rawMesh, true);
+         MeshView meshView = new MeshView(jfxMesh);
+         meshView.setMaterial(new PhongMaterial(color));
+         return meshView;
+      }
+      else if (meshType == UVMeshType.SUPPORT_VERTICES)
+      {
+         JavaFXMeshBuilder builder = new JavaFXMeshBuilder();
+         for (int i = 0; i < points.length; i++)
+         {
+            Point3D32 point = points[i];
+            builder.addTetrahedron(0.005, point);
+         }
+         MeshView meshView = new MeshView(builder.generateMesh());
+         meshView.setMaterial(new PhongMaterial(color));
+         return meshView;
+      }
+      else if (meshType == UVMeshType.SUPPORT_DIRECTIONS)
+      {
+         JavaFXMeshBuilder builder = new JavaFXMeshBuilder();
+         for (int i = 0; i < points.length; i++)
+         {
+            Point3D32 point = points[i];
+            Vector3D32 direction = supportDirections[i];
+            MeshDataHolder directionMesh = MeshDataGenerator.Cylinder(0.005, 0.1, 3);
+            builder.addMesh(directionMesh, point, EuclidGeometryTools.axisAngleFromZUpToVector3D(direction));
+         }
+         MeshView meshView = new MeshView(builder.generateMesh());
+         meshView.setMaterial(new PhongMaterial(color));
+         return meshView;
+      }
+      else
+      {
+         throw new IllegalStateException("Unexpected mesh type: " + meshType);
+      }
    }
 
    public static Color nextColor(Random random)

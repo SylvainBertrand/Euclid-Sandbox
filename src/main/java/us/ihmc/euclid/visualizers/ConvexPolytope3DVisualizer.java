@@ -71,7 +71,7 @@ public class ConvexPolytope3DVisualizer extends Application
                                                                       new Point3D(0.1030819243869309800, -0.3550176957114557000, -0.1224997543555419500)),
                                                         true, Color.ORANGE, 0.005));
 
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(troublesomePoint, Color.BLACK, 0.1));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(troublesomePoint, Color.BLACK, 0.1));
 
       convexPolytope3D.getFaces()
                       .forEach(f -> System.out.println(convexPolytope3D.getFaces().indexOf(f) + "\t" + f.distance(new Point3D()) * f.distance(new Point3D())));

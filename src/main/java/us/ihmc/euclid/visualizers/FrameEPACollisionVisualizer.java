@@ -109,11 +109,11 @@ public class FrameEPACollisionVisualizer extends Application
       System.out.println(frameResult.getPointOnA().distance(frameResult.getPointOnB()));
       System.out.println(framelessResult.getPointOnA().distance(framelessResult.getPointOnB()));
 
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(framelessResult.getPointOnA(), Color.ORANGE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(framelessResult.getPointOnB(), Color.ORANGERED, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(framelessResult.getPointOnA(), Color.ORANGE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(framelessResult.getPointOnB(), Color.ORANGERED, 0.01));
 
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(frameResult.getPointOnA(), Color.AQUAMARINE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(frameResult.getPointOnB(), Color.CADETBLUE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(frameResult.getPointOnA(), Color.AQUAMARINE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(frameResult.getPointOnB(), Color.CADETBLUE, 0.01));
 
       view3dFactory.addNodeToView(Shape3DMeshFactories.toFrameShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.5)));
       view3dFactory.addNodeToView(Shape3DMeshFactories.toFrameShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.5)));

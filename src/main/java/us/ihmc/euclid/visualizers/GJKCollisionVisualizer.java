@@ -67,8 +67,8 @@ public class GJKCollisionVisualizer extends Application
       //      gjkDetector.evaluateCollision((SupportingVertexHolder) shapeA, (SupportingVertexHolder) shapeB, result);
       EuclidShapeCollisionTools.evaluatePointShape3DRamp3DCollision(shapeA, shapeB, result);
       System.out.println("Expected: " + result);
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(result.getPointOnA(), Color.ORANGE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(result.getPointOnB(), Color.ORANGERED, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(result.getPointOnA(), Color.ORANGE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(result.getPointOnB(), Color.ORANGERED, 0.01));
 
       EuclidShape3DCollisionResult gjkResult = gjkDetector.evaluateCollision(shapeB, shapeA);
       ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(gjkDetector.getSimplex().getVertices()), 1.0e-12);
@@ -78,8 +78,8 @@ public class GJKCollisionVisualizer extends Application
 
       view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.7)));
       view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.7)));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(gjkResult.getPointOnA(), Color.AQUAMARINE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(gjkResult.getPointOnB(), Color.CADETBLUE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(gjkResult.getPointOnA(), Color.AQUAMARINE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(gjkResult.getPointOnB(), Color.CADETBLUE, 0.01));
 
       //      view3dFactory.addNodeToView(ConvexPolytope3DVisualizer.generatePointMesh(new Point3D(0.7241694221106871000, 0.4841639275556230400, 0.7683243967949757000),
       //                                                                               Color.BLACK,

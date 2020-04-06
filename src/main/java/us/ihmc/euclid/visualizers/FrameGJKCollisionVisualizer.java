@@ -111,11 +111,11 @@ public class FrameGJKCollisionVisualizer extends Application
       System.out.println(frameResult.getPointOnA().distance(frameResult.getPointOnB()));
       System.out.println(framelessResult.getPointOnA().distance(framelessResult.getPointOnB()));
 
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(framelessResult.getPointOnA(), Color.ORANGE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(framelessResult.getPointOnB(), Color.ORANGERED, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(framelessResult.getPointOnA(), Color.ORANGE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(framelessResult.getPointOnB(), Color.ORANGERED, 0.01));
 
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(frameResult.getPointOnA(), Color.AQUAMARINE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(frameResult.getPointOnB(), Color.CADETBLUE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(frameResult.getPointOnA(), Color.AQUAMARINE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(frameResult.getPointOnB(), Color.CADETBLUE, 0.01));
 
       ConvexPolytope3D convexPolytope3D = new ConvexPolytope3D(Vertex3DSupplier.asVertex3DSupplier(frameGJKDetector.getSimplex().getVertices()), 1.0e-12);
       convexPolytope3D.applyTransform(shapeB.getPose());

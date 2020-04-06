@@ -64,11 +64,11 @@ public class EPACollisionVisualizer extends Application
       EuclidShape3DCollisionResult epaResult = epaDetector.evaluateCollision(shapeA, shapeB);
       System.out.println("EPA:\n\t" + epaResult);
 
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(result.getPointOnA(), Color.ORANGE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(result.getPointOnB(), Color.ORANGERED, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(result.getPointOnA(), Color.ORANGE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(result.getPointOnB(), Color.ORANGERED, 0.01));
 
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(epaResult.getPointOnA(), Color.AQUAMARINE, 0.01));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(epaResult.getPointOnB(), Color.CADETBLUE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(epaResult.getPointOnA(), Color.AQUAMARINE, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(epaResult.getPointOnB(), Color.CADETBLUE, 0.01));
 
       view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(shapeA, Color.AQUAMARINE.deriveColor(0, 1, 1, 0.5)));
       view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(shapeB, Color.CORNFLOWERBLUE.deriveColor(0, 1, 1, 0.5)));
@@ -78,7 +78,7 @@ public class EPACollisionVisualizer extends Application
 
       Point3D position = new Point3D(0.73542974157294870000, -0.49199722166889400000, 0.98154753108250430000);
       position.applyTransform(shapeB.getPose());
-      view3dFactory.addNodeToView(Shape3DMeshFactories.togeneratePointMesh(position, Color.BLACK, 0.01));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toPointMesh(position, Color.BLACK, 0.01));
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);
       primaryStage.setScene(view3dFactory.getScene());
