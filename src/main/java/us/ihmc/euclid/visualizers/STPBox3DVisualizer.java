@@ -1,6 +1,7 @@
 package us.ihmc.euclid.visualizers;
 
 import java.util.List;
+import java.util.Random;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -10,14 +11,15 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
-import us.ihmc.euclid.shape.convexPolytope.tools.EuclidPolytopeFactories;
+import us.ihmc.euclid.shape.primitives.Box3D;
+import us.ihmc.euclid.shape.tools.EuclidShapeRandomTools;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.visualizers.Shape3DMeshFactories.UVMeshType;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
 import us.ihmc.javaFXToolkit.scenes.View3DFactory;
 import us.ihmc.javaFXToolkit.shapes.JavaFXMeshBuilder;
 
-public class STPConvexPolytopeVisualizer extends Application
+public class STPBox3DVisualizer extends Application
 {
    @Override
    public void start(Stage primaryStage) throws Exception
@@ -30,11 +32,22 @@ public class STPConvexPolytopeVisualizer extends Application
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
-      STPConvexPolytope3D stpPolytope = new STPConvexPolytope3D(EuclidPolytopeFactories.newCube(0.5));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(stpPolytope.getPolytope().getFaces(), Color.DARKCYAN));
+      Random random = new Random(3406);
+      Box3D box3D = EuclidShapeRandomTools.nextBox3D(random);
+      box3D.getPose().setToZero();
+      STPBox3D stpBox = new STPBox3D(box3D);
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toBox3DMesh(box3D, Color.DARKCYAN));
       int resolution = 150;
-      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.HULL));
-//      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.SUPPORT_DIRECTIONS));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
+                                                                Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+                                                                resolution,
+                                                                resolution,
+                                                                UVMeshType.HULL));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
+                                                                Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+                                                                resolution,
+                                                                resolution,
+                                                                UVMeshType.SUPPORT_DIRECTIONS));
 
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);
