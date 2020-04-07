@@ -13,6 +13,7 @@ import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
 import us.ihmc.euclid.shape.primitives.Box3D;
 import us.ihmc.euclid.shape.tools.EuclidShapeRandomTools;
+import us.ihmc.euclid.tools.EuclidCoreRandomTools;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.visualizers.Shape3DMeshFactories.UVMeshType;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
@@ -32,22 +33,29 @@ public class STPBox3DVisualizer extends Application
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
-      Random random = new Random(3406);
-      Box3D box3D = EuclidShapeRandomTools.nextBox3D(random);
-      box3D.getPose().setToZero();
-      STPBox3D stpBox = new STPBox3D(box3D);
-      view3dFactory.addNodeToView(Shape3DMeshFactories.toBox3DMesh(box3D, Color.DARKCYAN));
-      int resolution = 150;
-      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
-                                                                Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
-                                                                resolution,
-                                                                resolution,
-                                                                UVMeshType.HULL));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
-                                                                Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
-                                                                resolution,
-                                                                resolution,
-                                                                UVMeshType.SUPPORT_DIRECTIONS));
+      Random random = new Random(34106);
+      for (int i = 0; i < 10; i++)
+      {
+         Box3D box3D = EuclidShapeRandomTools.nextBox3D(random);
+         box3D.getPose().getTranslation().set(EuclidCoreRandomTools.nextPoint3D(random, 2.0));
+         STPBox3D stpBox = new STPBox3D(box3D);
+         view3dFactory.addNodeToView(Shape3DMeshFactories.toBox3DMesh(box3D, Color.DARKCYAN));
+         
+         //      view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(box3D.asConvexPolytope(), Color.PINK.deriveColor(0.0, 1.0, 1.0, 0.2)));
+         //      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsNormalMesh(box3D.asConvexPolytope().getFaces()));
+         //      view3dFactory.addNodeToView(Shape3DMeshFactories.toHalfEdge3DsMesh(box3D.asConvexPolytope().getHalfEdges(), Color.BLACK, 0.01));
+         int resolution = 150;
+         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
+                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+                                                                   resolution,
+                                                                   resolution,
+                                                                   UVMeshType.HULL));
+         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
+                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+                                                                   resolution,
+                                                                   resolution,
+                                                                   UVMeshType.SUPPORT_DIRECTIONS));
+      }
 
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);

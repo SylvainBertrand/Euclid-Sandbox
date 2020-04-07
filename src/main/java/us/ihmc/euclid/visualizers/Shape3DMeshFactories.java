@@ -17,6 +17,7 @@ import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
 import us.ihmc.euclid.referenceFrame.ReferenceFrame;
 import us.ihmc.euclid.referenceFrame.interfaces.FrameShape3DBasics;
 import us.ihmc.euclid.shape.collision.interfaces.SupportingVertexHolder;
+import us.ihmc.euclid.shape.convexPolytope.interfaces.ConvexPolytope3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.Box3DReadOnly;
@@ -66,6 +67,8 @@ public class Shape3DMeshFactories
          return Shape3DMeshFactories.toEllipsoid3DMesh((Ellipsoid3DReadOnly) shape3D, color);
       if (shape3D instanceof Capsule3DReadOnly)
          return Shape3DMeshFactories.toCapsule3DMesh((Capsule3DReadOnly) shape3D, color);
+      if (shape3D instanceof ConvexPolytope3DReadOnly)
+         return toFace3DsMesh(((ConvexPolytope3DReadOnly) shape3D).getFaces(), color);
       throw new UnsupportedOperationException("Unsupported shape " + shape3D);
    }
 
@@ -183,8 +186,8 @@ public class Shape3DMeshFactories
       {
          Face3DReadOnly face = faces.get(i);
          double scale = Math.max(0.00003, face.getEdges().stream().mapToDouble(HalfEdge3DReadOnly::length).max().getAsDouble());
-         double height = 0.010 * scale;
-         double radius = 0.005 * scale;
+         double height = 0.050 * scale;
+         double radius = 0.025 * scale;
          AxisAngle orientation = EuclidGeometryTools.axisAngleFromZUpToVector3D(face.getNormal());
          double hue = EuclidCoreRandomTools.nextDouble(new Random(face.hashCode()), 0.0, 360.0);
          MeshDataHolder cone = MeshDataGenerator.Cone(height, radius, 32);
