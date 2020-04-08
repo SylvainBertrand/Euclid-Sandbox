@@ -18,8 +18,8 @@ import us.ihmc.euclid.visualizers.STPFace3D.STPHalfEdge3D;
 
 public class STPConvexPolytope3D implements SupportingVertexHolder
 {
-   private final double largeRadius = 3.0;
-   private final double smallRadius = 0.05;
+   private final double largeRadius = 10.0;
+   private final double smallRadius = 0.01;
 
    private final ConvexPolytope3DReadOnly polytope;
 

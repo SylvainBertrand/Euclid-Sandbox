@@ -17,8 +17,8 @@ import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 
 public class STPBox3D implements SupportingVertexHolder
 {
-   private final double largeRadius = 2.0;
-   private final double smallRadius = 0.05;
+   private final double largeRadius = 10.0;
+   private final double smallRadius = 0.01;
 
    private final Box3DReadOnly box3D;
 

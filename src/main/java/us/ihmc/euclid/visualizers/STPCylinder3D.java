@@ -14,8 +14,8 @@ import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 
 public class STPCylinder3D implements SupportingVertexHolder
 {
-   private final double largeRadius = 3.00;
-   private final double smallRadius = 0.05;
+   private final double largeRadius = 10.00;
+   private final double smallRadius = 0.01;
 
    private final Cylinder3DReadOnly cylinder3D;
 
