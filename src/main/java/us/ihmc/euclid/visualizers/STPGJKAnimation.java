@@ -6,9 +6,17 @@ import java.util.Random;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.AmbientLight;
 import javafx.scene.Node;
 import javafx.scene.PointLight;
+import javafx.scene.Scene;
+import javafx.scene.SceneAntialiasing;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory.DoubleSpinnerValueFactory;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
@@ -16,8 +24,10 @@ import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Affine;
 import javafx.stage.Stage;
 import us.ihmc.commons.Conversions;
+import us.ihmc.euclid.Axis3D;
 import us.ihmc.euclid.matrix.RotationMatrix;
 import us.ihmc.euclid.referenceFrame.FrameBox3D;
+import us.ihmc.euclid.referenceFrame.FrameVector3D;
 import us.ihmc.euclid.referenceFrame.ReferenceFrame;
 import us.ihmc.euclid.referenceFrame.collision.EuclidFrameShape3DCollisionResult;
 import us.ihmc.euclid.referenceFrame.collision.gjk.FrameGilbertJohnsonKeerthiCollisionDetector;
@@ -29,19 +39,93 @@ import us.ihmc.euclid.shape.convexPolytope.tools.EuclidPolytopeFactories;
 import us.ihmc.euclid.transform.RigidBodyTransform;
 import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
+import us.ihmc.euclid.tuple4D.Quaternion;
 import us.ihmc.euclid.visualizers.Shape3DMeshFactories.UVMeshType;
 import us.ihmc.euclid.yawPitchRoll.YawPitchRoll;
 import us.ihmc.javaFXToolkit.JavaFXTools;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
 import us.ihmc.javaFXToolkit.scenes.View3DFactory;
+import us.ihmc.javaFXToolkit.scenes.View3DFactory.SceneType;
 import us.ihmc.javaFXToolkit.shapes.JavaFXMeshBuilder;
 
 public class STPGJKAnimation extends Application
 {
+   @FXML
+   private ToggleButton runButton, rewindButton;
+   @FXML
+   private Spinner<Double> angularVelocityAX, angularVelocityAY, angularVelocityAZ;
+   @FXML
+   private Spinner<Double> angularVelocityBX, angularVelocityBY, angularVelocityBZ;
+
+   private final Vector3D angularVelocityA = new Vector3D(0.1, 0.2, 0.15);
+   private final Vector3D angularVelocityB = new Vector3D(0.0, 0.0, 0.0);
+   private final Vector3D rotationVectorA = new Vector3D(1.0, 0.0, 0.0);
+   private final Vector3D rotationVectorB = new Vector3D(0.0, 0.0, 0.0);
+   private final RotationMatrix rotationMatrixA = new RotationMatrix();
+   private final RotationMatrix rotationMatrixB = new RotationMatrix();
+   private final FrameVector3D stpInitialSupportDirection = new FrameVector3D(ReferenceFrame.getWorldFrame(), Axis3D.X);
+   private final FrameVector3D initialSupportDirection = new FrameVector3D(ReferenceFrame.getWorldFrame(), Axis3D.X);
+
+   private final RigidBodyTransform transformA = new RigidBodyTransform(new Quaternion(), new Vector3D(-2.0, 0.0, 0.0));
+   private final RigidBodyTransform transformB = new RigidBodyTransform(new Quaternion(), new Vector3D(2.0, 0.0, 0.0));
+
+   private final ReferenceFrame frameA = new ReferenceFrame("frameA", ReferenceFrame.getWorldFrame())
+   {
+      @Override
+      protected void updateTransformToParent(RigidBodyTransform transformToParent)
+      {
+         transformToParent.set(transformA);
+      }
+   };
+
+   private final ReferenceFrame frameB = new ReferenceFrame("frameB", ReferenceFrame.getWorldFrame())
+   {
+      @Override
+      protected void updateTransformToParent(RigidBodyTransform transformToParent)
+      {
+         transformToParent.set(transformB);
+      }
+   };
+
+   public void initialize()
+   {
+      angularVelocityAX.setValueFactory(new DoubleSpinnerValueFactory(-5.0, 5.0, angularVelocityA.getX(), 0.05));
+      angularVelocityAY.setValueFactory(new DoubleSpinnerValueFactory(-5.0, 5.0, angularVelocityA.getY(), 0.05));
+      angularVelocityAZ.setValueFactory(new DoubleSpinnerValueFactory(-5.0, 5.0, angularVelocityA.getZ(), 0.05));
+
+      angularVelocityBX.setValueFactory(new DoubleSpinnerValueFactory(-5.0, 5.0, angularVelocityB.getX(), 0.05));
+      angularVelocityBY.setValueFactory(new DoubleSpinnerValueFactory(-5.0, 5.0, angularVelocityB.getY(), 0.05));
+      angularVelocityBZ.setValueFactory(new DoubleSpinnerValueFactory(-5.0, 5.0, angularVelocityB.getZ(), 0.05));
+
+      angularVelocityAX.getValueFactory().valueProperty().addListener((o, oldValue, newValue) -> angularVelocityA.setX(newValue));
+      angularVelocityAY.getValueFactory().valueProperty().addListener((o, oldValue, newValue) -> angularVelocityA.setY(newValue));
+      angularVelocityAZ.getValueFactory().valueProperty().addListener((o, oldValue, newValue) -> angularVelocityA.setZ(newValue));
+
+      angularVelocityBX.getValueFactory().valueProperty().addListener((o, oldValue, newValue) -> angularVelocityB.setX(newValue));
+      angularVelocityBY.getValueFactory().valueProperty().addListener((o, oldValue, newValue) -> angularVelocityB.setY(newValue));
+      angularVelocityBZ.getValueFactory().valueProperty().addListener((o, oldValue, newValue) -> angularVelocityB.setZ(newValue));
+
+      frameA.update();
+      frameB.update();
+   }
+
+   @FXML
+   public void reset()
+   {
+      transformA.getRotation().setToZero();
+      transformB.getRotation().setToZero();
+      frameA.update();
+      frameB.update();
+   }
+
    @Override
    public void start(Stage primaryStage) throws Exception
    {
-      View3DFactory view3dFactory = new View3DFactory(600, 400);
+      FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/STPGJKAnimationWindow.fxml"));
+      loader.setController(this);
+      BorderPane mainPane = loader.load();
+
+      View3DFactory view3dFactory = new View3DFactory(600, 400, true, SceneAntialiasing.BALANCED, SceneType.SUB_SCENE);
       FocusBasedCameraMouseEventHandler cameraController = view3dFactory.addCameraController(0.001, 100.0, true);
       cameraController.setMinLatitude(Double.NEGATIVE_INFINITY);
       cameraController.setMaxLatitude(Double.POSITIVE_INFINITY);
@@ -50,21 +134,11 @@ public class STPGJKAnimation extends Application
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
       PointLight light = new PointLight(Color.WHEAT);
-      light.getTransforms().addAll(view3dFactory.getScene().getCamera().getTransforms());
+      light.getTransforms().addAll(view3dFactory.getSubScene().getCamera().getTransforms());
       view3dFactory.addNodeToView(light);
       int resolution = 150;
 
-      Random random = new Random(34106);
-
-      RigidBodyTransform transformA = new RigidBodyTransform();
-      ReferenceFrame frameA = new ReferenceFrame("frameA", ReferenceFrame.getWorldFrame())
-      {
-         @Override
-         protected void updateTransformToParent(RigidBodyTransform transformToParent)
-         {
-            transformToParent.set(transformA);
-         }
-      };
+      Random random = new Random(341);
 
       Sphere pointOnANode = new Sphere(0.01);
       pointOnANode.setMaterial(new PhongMaterial(Color.INDIGO));
@@ -81,6 +155,7 @@ public class STPGJKAnimation extends Application
       view3dFactory.addNodeToView(stpPointOnBNode);
 
       FrameBox3D shapeA = EuclidFrameShapeRandomTools.nextFrameBox3D(random, frameA);
+      shapeA.getSize().set(1.0, 1.0, 1.0);
       shapeA.getPose().setToZero();
       SupportingFrameVertexHolder stpShapeA = new FrameSTPBox3D(shapeA);
       Node shapeNodeA = Shape3DMeshFactories.toShape3DMesh(shapeA, Color.DARKCYAN);
@@ -91,17 +166,8 @@ public class STPGJKAnimation extends Application
       shapeNodeA.getTransforms().add(nodeTransfomA);
       stpShapeNodeA.getTransforms().add(nodeTransfomA);
 
-      RigidBodyTransform transformB = new RigidBodyTransform();
-      ReferenceFrame frameB = new ReferenceFrame("frameB", ReferenceFrame.getWorldFrame())
-      {
-         @Override
-         protected void updateTransformToParent(RigidBodyTransform transformToParent)
-         {
-            transformToParent.set(transformB);
-         }
-      };
       FrameConvexPolytope3D shapeB = new FrameConvexPolytope3D(frameB, EuclidPolytopeFactories.newIcosahedron(1.0));
-      shapeB.applyTransform(new RigidBodyTransform(new YawPitchRoll(0.35, 0.0, 0.0), new Vector3D(2.0, 0.0, 0.0)));
+      shapeB.applyTransform(new RigidBodyTransform(new YawPitchRoll(0.35, 0.0, 0.0), new Vector3D(0.0, 0.0, 0.0)));
       SupportingFrameVertexHolder stpShapeB = new FrameSTPConvexPolytope3D(shapeB);
       Node shapeNodeB = Shape3DMeshFactories.toShape3DMesh(shapeB, Color.DARKCYAN);
       Node stpShapeNodeB = Shape3DMeshFactories.toUVMesh(stpShapeB, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.HULL);
@@ -115,23 +181,27 @@ public class STPGJKAnimation extends Application
 
       new AnimationTimer()
       {
-         private final Vector3D angularVelocityA = new Vector3D(0.25, 0.05, 0.0);
-         private final Vector3D angularVelocityB = new Vector3D(0.0, 0.0, 0.0);
-         private final Vector3D rotationVectorA = new Vector3D(1.0, 0.0, 0.0);
-         private final Vector3D rotationVectorB = new Vector3D(0.0, 0.0, 0.0);
-         private final RotationMatrix rotationMatrixA = new RotationMatrix();
-         private final RotationMatrix rotationMatrixB = new RotationMatrix();
-
          private long lastTime = -1L;
 
          @Override
          public void handle(long now)
          {
+            if (!runButton.isSelected())
+            {
+               JavaFXTools.convertRigidBodyTransformToAffine(transformA, nodeTransfomA);
+               JavaFXTools.convertRigidBodyTransformToAffine(transformB, nodeTransfomB);
+
+               lastTime = -1L;
+               return;
+            }
             double dt = Conversions.nanosecondsToSeconds(now - lastTime);
             lastTime = now;
 
             if (lastTime == -1L)
                return;
+
+            if (rewindButton.isSelected())
+               dt = -dt;
 
             rotationVectorA.setAndScale(dt, angularVelocityA);
             rotationVectorB.setAndScale(dt, angularVelocityB);
@@ -147,18 +217,25 @@ public class STPGJKAnimation extends Application
             JavaFXTools.convertRigidBodyTransformToAffine(transformA, nodeTransfomA);
             JavaFXTools.convertRigidBodyTransformToAffine(transformB, nodeTransfomB);
 
-            EuclidFrameShape3DCollisionResult result = detector.evaluateCollision(stpShapeA, stpShapeB);
+            EuclidFrameShape3DCollisionResult result;
+            detector.setInitialSupportDirection(stpInitialSupportDirection);
+            result = detector.evaluateCollision(stpShapeA, stpShapeB);
             setNodeTranslate(stpPointOnANode, result.getPointOnA());
             setNodeTranslate(stpPointOnBNode, result.getPointOnB());
+            stpInitialSupportDirection.setMatchingFrame(detector.getSupportDirection());
+            detector.setInitialSupportDirection(initialSupportDirection);
             result = detector.evaluateCollision(shapeA, shapeB);
             setNodeTranslate(pointOnANode, result.getPointOnA());
             setNodeTranslate(pointOnBNode, result.getPointOnB());
+            initialSupportDirection.setMatchingFrame(detector.getSupportDirection());
          }
       }.start();
 
+      mainPane.setCenter(view3dFactory.getSubSceneWrappedInsidePane());
+
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);
-      primaryStage.setScene(view3dFactory.getScene());
+      primaryStage.setScene(new Scene(mainPane));
       primaryStage.setOnCloseRequest(event -> stop());
       primaryStage.show();
    }
