@@ -38,9 +38,10 @@ public class STPCylinder3DVisualizer extends Application
       view3dFactory.addNodeToView(light);
 
       Random random = new Random(34106);
-      for (int i = 0; i < 10; i++)
+//      for (int i = 0; i < 10; i++)
       {
          Cylinder3D cylinder3D = EuclidShapeRandomTools.nextCylinder3D(random);
+         cylinder3D.setSize(0.2, 1.0);
          STPCylinder3D stpCylinder = new STPCylinder3D(cylinder3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toCylinder3DMesh(cylinder3D, Color.DARKCYAN));
 
