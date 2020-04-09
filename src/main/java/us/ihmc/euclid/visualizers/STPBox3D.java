@@ -1,26 +1,28 @@
 package us.ihmc.euclid.visualizers;
 
-import us.ihmc.euclid.geometry.interfaces.LineSegment3DReadOnly;
-import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
+import static us.ihmc.euclid.geometry.tools.EuclidGeometryTools.triangleIsoscelesHeight;
+
+import us.ihmc.euclid.Axis3D;
 import us.ihmc.euclid.shape.collision.interfaces.SupportingVertexHolder;
-import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
-import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;
-import us.ihmc.euclid.shape.convexPolytope.interfaces.Vertex3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.Box3DReadOnly;
-import us.ihmc.euclid.shape.primitives.interfaces.BoxPolytope3DView;
 import us.ihmc.euclid.shape.tools.EuclidShapeTools;
-import us.ihmc.euclid.tools.TupleTools;
 import us.ihmc.euclid.tuple3D.Point3D;
 import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DBasics;
+import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 
 public class STPBox3D implements SupportingVertexHolder
 {
-   private final double largeRadius = 10.0;
-   private final double smallRadius = 0.01;
+   private final double largeRadius = 15.00;
+   private final double smallRadius = 0.005;
 
    private final Box3DReadOnly box3D;
+   private final Vector3D halfSize = new Vector3D();
+   private final Vector3D supportDirectionLocal = new Vector3D();
+   private final Point3D faceSphereCenter = new Point3D();
+   private final Point3D closestEdgeCenter = new Point3D();
+   private final Point3D closestVertexCenter = new Point3D();
 
    public STPBox3D(Box3DReadOnly box3D)
    {
@@ -30,82 +32,144 @@ public class STPBox3D implements SupportingVertexHolder
    @Override
    public boolean getSupportingVertex(Vector3DReadOnly supportDirection, Point3DBasics supportingVertexToPack)
    {
-      BoxPolytope3DView boxPolytope = box3D.asConvexPolytope();
+      if (box3D.getPose().hasRotation())
+      {
+         box3D.getPose().inverseTransform(supportDirection, supportDirectionLocal);
+         supportDirection = supportDirectionLocal;
+      }
 
-      Vertex3DReadOnly bestVertex = boxPolytope.getSupportingVertex(supportDirection);
-      Face3DReadOnly bestFace = findBestFace(supportDirection, bestVertex);
+      halfSize.setAndScale(0.5, box3D.getSize());
 
-      if (getFaceSupportingVertex(supportDirection, bestFace, supportingVertexToPack))
-         return true;
-      if (getBestEdgeSupportingVertex(supportDirection, bestFace, supportingVertexToPack))
-         return true;
-      EuclidShapeTools.supportingVertexSphere3D(supportDirection, bestVertex, smallRadius, supportingVertexToPack);
+      double faceXPlusDot = supportDirection.getX();
+      double faceYPlusDot = supportDirection.getY();
+      double faceZPlusDot = supportDirection.getZ();
+
+      double faceXAbsDot = Math.abs(faceXPlusDot);
+      double faceYAbsDot = Math.abs(faceYPlusDot);
+      double faceZAbsDot = Math.abs(faceZPlusDot);
+
+      Axis3D firstClosestFace;
+      double closestEdgeLength;
+      faceSphereCenter.setToZero();
+      closestEdgeCenter.setToZero();
+
+      boolean isFaceXMaxCloser = faceXPlusDot > 0.0;
+      boolean isFaceYMaxCloser = faceYPlusDot > 0.0;
+      boolean isFaceZMaxCloser = faceZPlusDot > 0.0;
+
+      closestVertexCenter.set(isFaceXMaxCloser ? halfSize.getX() : -halfSize.getX(),
+                              isFaceYMaxCloser ? halfSize.getY() : -halfSize.getY(),
+                              isFaceZMaxCloser ? halfSize.getZ() : -halfSize.getZ());
+
+      Axis3D closestEdgeTorusAxis;
+
+      if (faceXAbsDot > faceYAbsDot)
+      {
+         if (faceXAbsDot > faceZAbsDot)
+         { // Closest is one of the 2 x-faces
+            firstClosestFace = Axis3D.X;
+            faceSphereCenter.setX(isFaceXMaxCloser ? halfSize.getX() - sphereOffset(firstClosestFace) : -halfSize.getX() + sphereOffset(firstClosestFace));
+            closestEdgeCenter.setX(isFaceXMaxCloser ? halfSize.getX() : -halfSize.getX());
+
+            if (faceYAbsDot > faceZAbsDot)
+            { // 2nd closest face is one of the 2 y-faces
+               closestEdgeLength = box3D.getSizeZ();
+               closestEdgeTorusAxis = Axis3D.Z;
+               closestEdgeCenter.setY(isFaceYMaxCloser ? halfSize.getY() : -halfSize.getY());
+               closestVertexCenter.set(closestEdgeCenter);
+               closestVertexCenter.setZ(isFaceZMaxCloser ? halfSize.getZ() : -halfSize.getZ());
+            }
+            else
+            { // 2nd closest face is one of the 2 z-faces
+               closestEdgeLength = box3D.getSizeY();
+               closestEdgeTorusAxis = Axis3D.Y;
+               closestEdgeCenter.setZ(isFaceZMaxCloser ? halfSize.getZ() : -halfSize.getZ());
+            }
+         }
+         else
+         { // Closest is one of the 2 z-faces
+            firstClosestFace = Axis3D.Z;
+            faceSphereCenter.setZ(isFaceZMaxCloser ? halfSize.getZ() - sphereOffset(firstClosestFace) : -halfSize.getZ() + sphereOffset(firstClosestFace));
+            closestEdgeCenter.setZ(isFaceZMaxCloser ? halfSize.getZ() : -halfSize.getZ());
+
+            closestEdgeLength = box3D.getSizeY();
+            closestEdgeTorusAxis = Axis3D.Y;
+            closestEdgeCenter.setX(isFaceXMaxCloser ? halfSize.getX() : -halfSize.getX());
+         }
+      }
+      else if (faceYAbsDot > faceZAbsDot)
+      { // Closest is one of the 2 y-faces
+         firstClosestFace = Axis3D.Y;
+         faceSphereCenter.setY(isFaceYMaxCloser ? halfSize.getY() - sphereOffset(firstClosestFace) : -halfSize.getY() + sphereOffset(firstClosestFace));
+         closestEdgeCenter.setY(isFaceYMaxCloser ? halfSize.getY() : -halfSize.getY());
+
+         if (faceXAbsDot > faceZAbsDot)
+         { // 2nd closest face is one of the 2 x-faces
+            closestEdgeLength = box3D.getSizeZ();
+            closestEdgeTorusAxis = Axis3D.Z;
+            closestEdgeCenter.setX(isFaceXMaxCloser ? halfSize.getX() : -halfSize.getX());
+         }
+         else
+         { // 2nd closest face is one of the 2 z-faces
+            closestEdgeLength = box3D.getSizeX();
+            closestEdgeTorusAxis = Axis3D.X;
+            closestEdgeCenter.setZ(isFaceZMaxCloser ? halfSize.getZ() : -halfSize.getZ());
+         }
+      }
+      else
+      { // Closest is one of the 2 z-faces
+         firstClosestFace = Axis3D.Z;
+         faceSphereCenter.setZ(isFaceZMaxCloser ? halfSize.getZ() - sphereOffset(firstClosestFace) : -halfSize.getZ() + sphereOffset(firstClosestFace));
+         closestEdgeCenter.setZ(isFaceZMaxCloser ? halfSize.getZ() : -halfSize.getZ());
+
+         closestEdgeLength = box3D.getSizeX();
+         closestEdgeTorusAxis = Axis3D.X;
+         closestEdgeCenter.setY(isFaceYMaxCloser ? halfSize.getY() : -halfSize.getY());
+      }
+
+      EuclidShapeTools.supportingVertexSphere3D(supportDirection, faceSphereCenter, largeRadius, supportingVertexToPack);
+
+      if (!isDirectlyAboveOrBelowFace(firstClosestFace, supportingVertexToPack))
+      {
+         EuclidShapeTools.innerSupportingVertexTorus3D(supportDirection,
+                                                       closestEdgeCenter,
+                                                       closestEdgeTorusAxis,
+                                                       triangleIsoscelesHeight(largeRadius - smallRadius, closestEdgeLength),
+                                                       largeRadius,
+                                                       supportingVertexToPack);
+
+         if (Math.abs(Axis3D.get(supportingVertexToPack, closestEdgeTorusAxis)) > 0.5 * closestEdgeLength)
+         {
+            EuclidShapeTools.supportingVertexSphere3D(supportDirection, closestVertexCenter, smallRadius, supportingVertexToPack);
+         }
+      }
+
+      box3D.transformToWorld(supportingVertexToPack);
+
       return true;
    }
 
-   private Face3DReadOnly findBestFace(Vector3DReadOnly supportDirection, Vertex3DReadOnly bestVertex)
+   private boolean isDirectlyAboveOrBelowFace(Axis3D face, Point3DReadOnly query)
    {
-      Face3DReadOnly bestFace = bestVertex.getAssociatedEdge(0).getFace();
-      double bestFaceDot = bestFace.getNormal().dot(supportDirection);
-
-      for (int i = 1; i < bestVertex.getNumberOfAssociatedEdges(); i++)
+      switch (face)
       {
-         Face3DReadOnly candidateFace = bestVertex.getAssociatedEdge(i).getFace();
-         double candidateDot = candidateFace.getNormal().dot(supportDirection);
-
-         if (candidateDot > bestFaceDot)
-         {
-            bestFaceDot = candidateDot;
-            bestFace = candidateFace;
-         }
+         case X:
+            return Math.abs(query.getY()) <= halfSize.getY() && Math.abs(query.getZ()) <= halfSize.getZ();
+         case Y:
+            return Math.abs(query.getX()) <= halfSize.getX() && Math.abs(query.getZ()) <= halfSize.getZ();
+         case Z:
+            return Math.abs(query.getX()) <= halfSize.getX() && Math.abs(query.getY()) <= halfSize.getY();
+         default:
+            throw new IllegalStateException();
       }
-
-      return bestFace;
    }
 
-   private final Point3D faceSphereCenter = new Point3D();
-
-   private boolean getFaceSupportingVertex(Vector3DReadOnly supportDirection, Face3DReadOnly face, Point3DBasics supportingVertexToPack)
+   private double sphereOffset(Axis3D face)
    {
-      EuclidGeometryTools.sphere3DPositionFromThreePoints(face.getVertex(0), face.getVertex(1), face.getVertex(2), largeRadius - smallRadius, faceSphereCenter);
-      EuclidShapeTools.supportingVertexSphere3D(supportDirection, faceSphereCenter, largeRadius, supportingVertexToPack);
-      return face.isPointDirectlyAboveOrBelow(supportingVertexToPack);
-   }
-
-   private boolean getBestEdgeSupportingVertex(Vector3DReadOnly supportDirection, Face3DReadOnly bestFace, Point3DBasics supportingVertexToPack)
-   {
-      LineSegment3DReadOnly bestEdge = null;
-      double bestEdgeDot = Double.NEGATIVE_INFINITY;
-
-      for (HalfEdge3DReadOnly edge : bestFace.getEdges())
-      {
-         double candidateDot = TupleTools.dot(edge.midpoint(), supportDirection);
-
-         if (candidateDot > bestEdgeDot)
-         {
-            bestEdgeDot = candidateDot;
-            bestEdge = edge;
-         }
-      }
-
-      return getEdgeSupportingVertex(supportDirection, bestEdge, supportingVertexToPack);
-   }
-
-   private final Point3D edgeTorusCenter = new Point3D();
-   private final Vector3D edgeTorusAxis = new Vector3D();
-
-   private boolean getEdgeSupportingVertex(Vector3DReadOnly supportDirection, LineSegment3DReadOnly edge, Point3DBasics supportingVertexToPack)
-   {
-      edgeTorusCenter.add(edge.getFirstEndpoint(), edge.getSecondEndpoint());
-      edgeTorusCenter.scale(0.5);
-      edgeTorusAxis.sub(edge.getSecondEndpoint(), edge.getFirstEndpoint());
-
+      double a = Axis3D.get(box3D.getSize(), face.getNextClockwiseAxis());
+      double b = Axis3D.get(box3D.getSize(), face.getNextCounterClockwiseAxis());
+      double diagonalSquared = a * a + b * b;
       double radius = largeRadius - smallRadius;
-      double torusRadius = Math.sqrt(radius * radius - 0.25 * edgeTorusAxis.lengthSquared());
-      double torusTubeRadius = largeRadius;
-
-      EuclidShapeTools.innerSupportingVertexTorus3D(supportDirection, edgeTorusCenter, edgeTorusAxis, torusRadius, torusTubeRadius, supportingVertexToPack);
-
-      return edge.isBetweenEndpoints(supportingVertexToPack);
+      return Math.sqrt(radius * radius - 0.25 * diagonalSquared);
    }
 }
