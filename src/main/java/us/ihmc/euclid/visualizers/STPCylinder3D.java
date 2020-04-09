@@ -1,5 +1,6 @@
 package us.ihmc.euclid.visualizers;
 
+import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
 import us.ihmc.euclid.shape.collision.interfaces.SupportingVertexHolder;
 import us.ihmc.euclid.shape.primitives.interfaces.Cylinder3DReadOnly;
 import us.ihmc.euclid.shape.tools.EuclidShapeTools;
@@ -14,8 +15,8 @@ import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 
 public class STPCylinder3D implements SupportingVertexHolder
 {
-   private final double largeRadius = 10.00;
-   private final double smallRadius = 0.01;
+   private final double largeRadius = 15.00;
+   private final double smallRadius = 0.005;
 
    private final Cylinder3DReadOnly cylinder3D;
 
@@ -45,7 +46,6 @@ public class STPCylinder3D implements SupportingVertexHolder
       orthogonalToAxis.sub(supportDirection, orthogonalToAxis);
 
       double distanceSquaredFromAxis = orthogonalToAxis.lengthSquared();
-      double radius = largeRadius - smallRadius;
 
       if (distanceSquaredFromAxis < EuclidShapeTools.MIN_DISTANCE_EPSILON)
       {
@@ -56,14 +56,14 @@ public class STPCylinder3D implements SupportingVertexHolder
       {
          orthogonalToAxis.scale(1.0 / EuclidCoreTools.squareRoot(distanceSquaredFromAxis));
 
-         double sideSphereRadius = Math.sqrt(radius * radius - cylinderHalfLength * cylinderHalfLength);
+         double sideSphereRadius = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, cylinder3D.getLength());
          sideSphereCenter.setAndScale(cylinderRadius - sideSphereRadius, orthogonalToAxis);
 
          edgeSphereCenter.setAndScale(cylinderRadius, orthogonalToAxis);
          edgeSphereCenter.scaleAdd(sign * cylinderHalfLength, cylinderAxis, edgeSphereCenter);
       }
 
-      double capSphereRadius = Math.sqrt(radius * radius - cylinderRadius * cylinderRadius);
+      double capSphereRadius = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, 2.0 * cylinderRadius);
       capSphereCenter.setAndScale(sign * (cylinderHalfLength - capSphereRadius), cylinderAxis);
 
       if (!getSideSupportingVertex(supportDirection, supportingVertexToPack))
