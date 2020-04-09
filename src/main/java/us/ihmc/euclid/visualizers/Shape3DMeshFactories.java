@@ -67,6 +67,8 @@ public class Shape3DMeshFactories
          return Shape3DMeshFactories.toEllipsoid3DMesh((Ellipsoid3DReadOnly) shape3D, color);
       if (shape3D instanceof Capsule3DReadOnly)
          return Shape3DMeshFactories.toCapsule3DMesh((Capsule3DReadOnly) shape3D, color);
+      if (shape3D instanceof Cylinder3DReadOnly)
+         return toCylinder3DMesh((Cylinder3DReadOnly) shape3D, color);
       if (shape3D instanceof ConvexPolytope3DReadOnly)
          return toFace3DsMesh(((ConvexPolytope3DReadOnly) shape3D).getFaces(), color);
       throw new UnsupportedOperationException("Unsupported shape " + shape3D);
@@ -271,7 +273,7 @@ public class Shape3DMeshFactories
    public enum UVMeshType
    {
       HULL, SUPPORT_VERTICES, SUPPORT_DIRECTIONS
-   };
+   }
 
    public static Node toUVMesh(SupportingVertexHolder supportingVertexHolder, Color color)
    {
@@ -329,7 +331,7 @@ public class Shape3DMeshFactories
          for (int longitudeIndex = 0; longitudeIndex < longitudeN; longitudeIndex++)
          {
             int nextLongitudeIndex = (longitudeIndex + 1) % longitudeN;
-            int nextLatitudeIndex = (latitudeIndex + 1);
+            int nextLatitudeIndex = latitudeIndex + 1;
 
             // Lower triangles
             triangleIndices[index++] = latitudeIndex * longitudeN + longitudeIndex;
