@@ -13,7 +13,6 @@ import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
 import us.ihmc.euclid.shape.primitives.Ramp3D;
 import us.ihmc.euclid.shape.tools.EuclidShapeRandomTools;
-import us.ihmc.euclid.tools.EuclidCoreRandomTools;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.visualizers.Shape3DMeshFactories.UVMeshType;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
@@ -34,16 +33,17 @@ public class STPRamp3DVisualizer extends Application
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
       Random random = new Random(34106);
-      for (int i = 0; i < 10; i++)
+//      for (int i = 0; i < 10; i++)
       {
          Ramp3D ramp3D = EuclidShapeRandomTools.nextRamp3D(random);
-         ramp3D.getPose().getTranslation().set(EuclidCoreRandomTools.nextPoint3D(random, 2.0));
+         ramp3D.setSize(1.0, 1.0, 1.0);
+         ramp3D.getPose().setToZero();
          STPRamp3D stpRamp = new STPRamp3D(ramp3D);
          //         view3dFactory.addNodeToView(Shape3DMeshFactories.toRamp3DMesh(ramp3D, Color.DARKCYAN));
 
-         view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(ramp3D.asConvexPolytope(), Color.PINK.deriveColor(0.0, 1.0, 1.0, 0.2)));
-         view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsNormalMesh(ramp3D.asConvexPolytope().getFaces()));
-         view3dFactory.addNodeToView(Shape3DMeshFactories.toHalfEdge3DsMesh(ramp3D.asConvexPolytope().getHalfEdges(), Color.BLACK, 0.01));
+//         view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(ramp3D.asConvexPolytope(), Color.PINK.deriveColor(0.0, 1.0, 1.0, 0.2)));
+//         view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsNormalMesh(ramp3D.asConvexPolytope().getFaces()));
+//         view3dFactory.addNodeToView(Shape3DMeshFactories.toHalfEdge3DsMesh(ramp3D.asConvexPolytope().getHalfEdges(), Color.BLACK, 0.01));
          int resolution = 150;
          view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpRamp,
                                                                    Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
