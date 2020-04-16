@@ -32,12 +32,13 @@ public class STPConvexPolytope3DVisualizer extends Application
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
       ConvexPolytope3DSTPBoundingVolume stpPolytope = new ConvexPolytope3DSTPBoundingVolume();
-      stpPolytope.setMargins(0.005, 0.01);
-      stpPolytope.setShape3D(EuclidPolytopeFactories.newCube(0.5));
+      stpPolytope.setMargins(0.025, 0.05);
+      stpPolytope.setShape3D(EuclidPolytopeFactories.newCylinder(1.0, 0.3, 20));
       view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(stpPolytope.getShape3D().getFaces(), Color.DARKCYAN));
+      view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPConvexPolytope3DMesh(stpPolytope));
       int resolution = 150;
-      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.HULL));
-//      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.SUPPORT_DIRECTIONS));
+//      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.HULL));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.SUPPORT_VERTICES));
 
       primaryStage.setTitle(getClass().getSimpleName());
       primaryStage.setMaximized(true);

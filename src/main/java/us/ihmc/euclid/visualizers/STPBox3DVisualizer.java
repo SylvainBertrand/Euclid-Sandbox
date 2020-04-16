@@ -40,7 +40,7 @@ public class STPBox3DVisualizer extends Application
       //      for (int i = 0; i < 10; i++)
       {
          Box3D box3D = EuclidShapeRandomTools.nextBox3D(random);
-         box3D.getSize().set(0.5, 0.5, 0.5);
+         box3D.getSize().set(0.25, 0.5, 0.75);
          box3D.getPose().setToZero();
          //         box3D.getPose().getTranslation().set(EuclidCoreRandomTools.nextPoint3D(random, 2.0));
          Box3DSTPBoundingVolume stpBox = new Box3DSTPBoundingVolume();
@@ -54,11 +54,10 @@ public class STPBox3DVisualizer extends Application
          //      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsNormalMesh(box3D.asConvexPolytope().getFaces()));
          //      view3dFactory.addNodeToView(Shape3DMeshFactories.toHalfEdge3DsMesh(box3D.asConvexPolytope().getHalfEdges(), Color.BLACK, 0.01));
          int resolution = 150;
-         //         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
-         //                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
-         //                                                                   resolution,
-         //                                                                   resolution,
-         //                                                                   UVMeshType.HULL));
+//         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpBox,
+//                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+//                                                                   resolution,
+//                                                                   resolution, UVMeshType.HULL));
          Node supportVerticesMesh = Shape3DMeshFactories.toUVMesh(stpBox,
                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
                                                                   resolution,

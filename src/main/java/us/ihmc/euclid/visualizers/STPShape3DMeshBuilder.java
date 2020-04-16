@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.DoubleFunction;
-import java.util.stream.Stream;
 
 import gnu.trove.list.array.TIntArrayList;
 import javafx.scene.Node;
@@ -16,6 +15,7 @@ import us.ihmc.euclid.axisAngle.AxisAngle;
 import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
 import us.ihmc.euclid.shape.collision.shapeModifier.Box3DSTPBoundingVolume;
 import us.ihmc.euclid.shape.collision.shapeModifier.ConvexPolytope3DSTPBoundingVolume;
+import us.ihmc.euclid.shape.convexPolytope.interfaces.ConvexPolytope3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Vertex3DReadOnly;
@@ -30,6 +30,7 @@ import us.ihmc.euclid.tuple3D.interfaces.Tuple3DReadOnly;
 import us.ihmc.euclid.tuple3D.interfaces.Vector3DBasics;
 import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 import us.ihmc.graphicsDescription.MeshDataBuilder;
+import us.ihmc.graphicsDescription.MeshDataGenerator;
 import us.ihmc.graphicsDescription.MeshDataHolder;
 import us.ihmc.graphicsDescription.TexCoord2f;
 import us.ihmc.javaFXToolkit.shapes.JavaFXMultiColorMeshBuilder;
@@ -46,7 +47,8 @@ public class STPShape3DMeshBuilder
 
       for (int faceIndex = 0; faceIndex < boxPolytope.getNumberOfFaces(); faceIndex++)
       { // Produce faces' big sphere mesh
-         meshBuilder.addMesh(toBoxFaceSphere(boxPolytope.getFace(faceIndex), largeRadius, smallRadius, true), Color.CORNFLOWERBLUE);
+         List<MeshDataHolder> meshes = toBoxFaceSphere(boxPolytope.getFace(faceIndex), largeRadius, smallRadius, true);
+         meshes.forEach(mesh -> meshBuilder.addMesh(mesh, Color.CORNFLOWERBLUE));
       }
 
       Set<HalfEdge3DReadOnly> processedHalfEdgeSet = new HashSet<>();
@@ -58,13 +60,14 @@ public class STPShape3DMeshBuilder
             continue;
 
          processedHalfEdgeSet.add(halfEdge);
-         meshBuilder.addMesh(toBoxHalfEdgeTorus(halfEdge, largeRadius, smallRadius), Color.BLUEVIOLET);
+         meshBuilder.addMesh(toHalfEdgeTorus(halfEdge, largeRadius, smallRadius), Color.BLUEVIOLET);
       }
 
       for (int vertexIndex = 0; vertexIndex < boxPolytope.getNumberOfVertices(); vertexIndex++)
       { // Building the vertices' small sphere
          Vertex3DReadOnly vertex = boxPolytope.getVertex(vertexIndex);
-         meshBuilder.addMesh(toBoxVertexSphere(vertex, largeRadius, smallRadius), Color.ORANGE);
+         List<MeshDataHolder> meshes = toVertexSphere(vertex, largeRadius, smallRadius, false);
+         meshes.forEach(mesh -> meshBuilder.addMesh(mesh, Color.ORANGE));
       }
 
       MeshView meshView = new MeshView(meshBuilder.generateMesh());
@@ -74,16 +77,45 @@ public class STPShape3DMeshBuilder
 
    public static Node toSTPConvexPolytope3DMesh(ConvexPolytope3DSTPBoundingVolume stpConvexPolytope3D)
    {
+      ConvexPolytope3DReadOnly convexPolytope = stpConvexPolytope3D.getShape3D();
+      double largeRadius = stpConvexPolytope3D.getLargeRadius();
+      double smallRadius = stpConvexPolytope3D.getSmallRadius();
+
       JavaFXMultiColorMeshBuilder meshBuilder = new JavaFXMultiColorMeshBuilder();
+
+      for (int faceIndex = 0; faceIndex < convexPolytope.getNumberOfFaces(); faceIndex++)
+      { // Produce faces' big sphere mesh
+         List<MeshDataHolder> meshes = toFaceSpheres(convexPolytope.getFace(faceIndex), largeRadius, smallRadius, true);
+         meshes.forEach(mesh -> meshBuilder.addMesh(mesh, Color.CORNFLOWERBLUE));
+      }
+
+      Set<HalfEdge3DReadOnly> processedHalfEdgeSet = new HashSet<>();
+
+      for (int edgeIndex = 0; edgeIndex < convexPolytope.getNumberOfHalfEdges(); edgeIndex++)
+      { // Building the edges' torus
+         HalfEdge3DReadOnly halfEdge = convexPolytope.getHalfEdge(edgeIndex);
+         if (processedHalfEdgeSet.contains(halfEdge.getTwin()))
+            continue;
+
+         processedHalfEdgeSet.add(halfEdge);
+         meshBuilder.addMesh(toHalfEdgeTorus(halfEdge, largeRadius, smallRadius), Color.BLUEVIOLET);
+      }
+
+      for (int vertexIndex = 0; vertexIndex < convexPolytope.getNumberOfVertices(); vertexIndex++)
+      { // Building the vertices' small sphere
+         Vertex3DReadOnly vertex = convexPolytope.getVertex(vertexIndex);
+         List<MeshDataHolder> meshes = toVertexSphere(vertex, largeRadius, smallRadius, false);
+         meshes.forEach(mesh -> meshBuilder.addMesh(mesh, Color.ORANGE));
+      }
 
       MeshView meshView = new MeshView(meshBuilder.generateMesh());
       meshView.setMaterial(meshBuilder.generateMaterial());
       return meshView;
    }
 
-   public static MeshDataHolder toBoxFaceSphere(Face3DReadOnly face, double largeRadius, double smallRadius, boolean highlightLimits)
+   public static List<MeshDataHolder> toBoxFaceSphere(Face3DReadOnly face, double largeRadius, double smallRadius, boolean highlightLimits)
    {
-      MeshDataBuilder meshBuilder = new MeshDataBuilder();
+      List<MeshDataHolder> meshes = new ArrayList<>();
 
       Point3D sphereCenter = new Point3D();
       Vector3D limitA = new Vector3D();
@@ -99,23 +131,63 @@ public class STPShape3DMeshBuilder
       limitC.sub(face.getVertex(2), sphereCenter);
       limitD.sub(face.getVertex(3), sphereCenter);
 
-      meshBuilder.addMesh(toPartialSphereMesh(sphereCenter, limitA, limitB, limitC, largeRadius, 32));
-      meshBuilder.addMesh(toPartialSphereMesh(sphereCenter, limitA, limitC, limitD, largeRadius, 32));
+      meshes.add(toPartialSphereMesh(sphereCenter, limitA, limitB, limitC, largeRadius, 32));
+      meshes.add(toPartialSphereMesh(sphereCenter, limitA, limitC, limitD, largeRadius, 32));
 
       if (highlightLimits)
-         meshBuilder.addMesh(toBoxFaceSphereLimits(face, largeRadius, smallRadius, 0.001));
+         meshes.addAll(toBoxFaceSphereLimits(face, largeRadius, smallRadius, 0.001));
 
-      return meshBuilder.generateMeshDataHolder();
+      return meshes;
    }
 
-   public static MeshDataHolder toBoxFaceSphereLimits(Face3DReadOnly face, double largeRadius, double smallRadius, double lineThickness)
+   public static List<MeshDataHolder> toFaceSpheres(Face3DReadOnly owner, double largeRadius, double smallRadius, boolean highlightLimits)
    {
-      MeshDataBuilder meshBuilder = new MeshDataBuilder();
+      List<MeshDataHolder> meshes = new ArrayList<>();
+
+      for (int vertexIndex = 1; vertexIndex < owner.getNumberOfEdges() - 1; vertexIndex++)
+      {
+         Vertex3DReadOnly v0 = owner.getVertex(0);
+         Vertex3DReadOnly v1 = owner.getVertex(vertexIndex);
+         Vertex3DReadOnly v2 = owner.getVertex(vertexIndex + 1);
+         meshes.addAll(toFaceSubSphere(owner, v0, v1, v2, largeRadius, smallRadius, highlightLimits));
+      }
+
+      return meshes;
+   }
+
+   public static List<MeshDataHolder> toFaceSubSphere(Face3DReadOnly owner, Vertex3DReadOnly v0, Vertex3DReadOnly v1, Vertex3DReadOnly v2, double largeRadius,
+                                                      double smallRadius, boolean highlightLimits)
+   {
+      List<MeshDataHolder> meshes = new ArrayList<>();
+
+      Point3D sphereCenter = new Point3D();
+      Vector3D limitA = new Vector3D();
+      Vector3D limitB = new Vector3D();
+      Vector3D limitC = new Vector3D();
+
+      EuclidGeometryTools.sphere3DPositionFromThreePoints(v0, v1, v2, largeRadius - smallRadius, sphereCenter);
+
+      limitA.sub(v0, sphereCenter);
+      limitB.sub(v1, sphereCenter);
+      limitC.sub(v2, sphereCenter);
+
+      meshes.add(toPartialSphereMesh(sphereCenter, limitA, limitB, limitC, largeRadius, 32));
+
+      if (highlightLimits)
+         meshes.addAll(toFaceSubSphereLimits(owner, v0, v1, v2, largeRadius, smallRadius, 0.001));
+
+      return meshes;
+   }
+
+   public static List<MeshDataHolder> toBoxFaceSphereLimits(Face3DReadOnly face, double largeRadius, double smallRadius, double lineThickness)
+   {
+      List<MeshDataHolder> meshes = new ArrayList<>();
 
       Point3D arcCenter = new Point3D();
       Vector3D arcNormal = new Vector3D();
       Vector3D startDirection = new Vector3D();
       Vector3D endDirection = new Vector3D();
+      Point3D endpoint = new Point3D();
 
       double centerOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, face.getVertex(0).distance(face.getVertex(2)));
       arcCenter.scaleAdd(-centerOffset, face.getNormal(), face.getCentroid());
@@ -127,148 +199,152 @@ public class STPShape3DMeshBuilder
          EuclidGeometryTools.normal3DFromThreePoint3Ds(arcCenter, edge.getFirstEndpoint(), edge.getSecondEndpoint(), arcNormal);
          startDirection.sub(edge.getFirstEndpoint(), arcCenter);
          endDirection.sub(edge.getSecondEndpoint(), arcCenter);
-         meshBuilder.addMesh(toArcMesh(arcCenter, arcNormal, largeRadius, lineThickness, startDirection, startDirection.angle(endDirection), 32, 6));
+         meshes.addAll(toArcMesh(arcCenter, arcNormal, largeRadius, lineThickness, startDirection, startDirection.angle(endDirection), 32, 8));
+         endpoint.scaleAdd(largeRadius / startDirection.length(), startDirection, arcCenter);
+         meshes.add(MeshDataHolder.translate(MeshDataGenerator.Sphere(lineThickness, 8, 8), endpoint));
       }
 
-      return meshBuilder.generateMeshDataHolder();
+      return meshes;
    }
 
-   public static MeshDataHolder toBoxHalfEdgeTorus(HalfEdge3DReadOnly halfEdge, double largeRadius, double smallRadius)
+   private static List<MeshDataHolder> toFaceSubSphereLimits(Face3DReadOnly owner, Vertex3DReadOnly v0, Vertex3DReadOnly v1, Vertex3DReadOnly v2,
+                                                             double largeRadius, double smallRadius, double lineThickness)
+   {
+      List<MeshDataHolder> meshes = new ArrayList<>();
+
+      Point3D arcCenter = new Point3D();
+      Vector3D arcNormal = new Vector3D();
+      Vector3D startDirection = new Vector3D();
+      Vector3D endDirection = new Vector3D();
+      Point3D endpoint = new Point3D();
+
+      EuclidGeometryTools.sphere3DPositionFromThreePoints(v0, v1, v2, largeRadius - smallRadius, arcCenter);
+
+      Vertex3DReadOnly[] vertices = {v0, v1, v2};
+
+      for (int vertexIndex = 0; vertexIndex < 3; vertexIndex++)
+      {
+         // Creates arcs to highlight the limits of the big spheres.
+         Vertex3DReadOnly start = vertices[vertexIndex];
+         Vertex3DReadOnly end = vertices[(vertexIndex + 1) % 3];
+         EuclidGeometryTools.normal3DFromThreePoint3Ds(arcCenter, start, end, arcNormal);
+         startDirection.sub(start, arcCenter);
+         endDirection.sub(end, arcCenter);
+         meshes.addAll(toArcMesh(arcCenter, arcNormal, largeRadius, lineThickness, startDirection, startDirection.angle(endDirection), 32, 8));
+         endpoint.scaleAdd(largeRadius / startDirection.length(), startDirection, arcCenter);
+         meshes.add(MeshDataHolder.translate(MeshDataGenerator.Sphere(lineThickness, 8, 8), endpoint));
+      }
+
+      return meshes;
+   }
+
+   public static MeshDataHolder toHalfEdgeTorus(HalfEdge3DReadOnly halfEdge, double largeRadius, double smallRadius)
    {
       Vector3D startDirection = new Vector3D();
       Vector3D endDirection = new Vector3D();
       Vector3D sphereToEdgeA = new Vector3D();
       Vector3D sphereToEdgeB = new Vector3D();
-      Point3D neighborShpereCenterA = new Point3D();
-      Point3D neighborShpereCenterB = new Point3D();
 
-      Face3DReadOnly neighborA = halfEdge.getFace();
-      Face3DReadOnly neighborB = halfEdge.getTwin().getFace();
+      Point3D neighborSphereCenterA = computeNeighborFaceSubSphereCenter(halfEdge, largeRadius, smallRadius);
+      Point3D neighborSphereCenterB = computeNeighborFaceSubSphereCenter(halfEdge.getTwin(), largeRadius, smallRadius);
 
-      double sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, neighborA.getVertex(0).distance(neighborA.getVertex(2)));
-      neighborShpereCenterA.scaleAdd(-sphereOffset, neighborA.getNormal(), neighborA.getCentroid());
-      sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, neighborB.getVertex(0).distance(neighborB.getVertex(2)));
-      neighborShpereCenterB.scaleAdd(-sphereOffset, neighborB.getNormal(), neighborB.getCentroid());
-
-      sphereToEdgeA.sub(halfEdge.midpoint(), neighborShpereCenterA);
-      sphereToEdgeB.sub(halfEdge.midpoint(), neighborShpereCenterB);
+      sphereToEdgeA.sub(halfEdge.midpoint(), neighborSphereCenterA);
+      sphereToEdgeB.sub(halfEdge.midpoint(), neighborSphereCenterB);
       Vector3DBasics revolutionAxis = halfEdge.getDirection(true);
       revolutionAxis.negate();
       double endRevolutionAngle = sphereToEdgeA.angle(sphereToEdgeB);
 
-      startDirection.sub(halfEdge.getDestination(), neighborShpereCenterA);
-      endDirection.sub(halfEdge.getOrigin(), neighborShpereCenterA);
-      MeshDataHolder arcData = toArcPointsAndNormals(neighborShpereCenterA, largeRadius, startDirection, endDirection, 64);
+      startDirection.sub(halfEdge.getDestination(), neighborSphereCenterA);
+      endDirection.sub(halfEdge.getOrigin(), neighborSphereCenterA);
+      MeshDataHolder arcData = toArcPointsAndNormals(neighborSphereCenterA, largeRadius, startDirection, endDirection, 32);
 
-      return applyRevolution(arcData, halfEdge.midpoint(), revolutionAxis, 0.0, endRevolutionAngle, 32, false);
+      return applyRevolution(arcData, halfEdge.midpoint(), revolutionAxis, 0.0, endRevolutionAngle, 16, false);
    }
 
-   public static MeshDataHolder toBoxVertexSphere(Vertex3DReadOnly vertex, double largeRadius, double smallRadius)
+   private static Point3D computeNeighborFaceSubSphereCenter(HalfEdge3DReadOnly edge, double largeRadius, double smallRadius)
    {
-      HalfEdge3DReadOnly edge0 = vertex.getAssociatedEdge(0);
-      HalfEdge3DReadOnly edge1 = vertex.getAssociatedEdge(1);
-      HalfEdge3DReadOnly edge2 = vertex.getAssociatedEdge(2);
+      Point3D neighorSubSphereCenter = new Point3D();
 
-      { // Check winding
-         Vector3DBasics validationVector = edge0.getDirection(false);
-         validationVector.cross(edge1.getDirection(false));
-         if (validationVector.dot(edge2.getDirection(false)) < 0.0)
-         {
-            edge1 = vertex.getAssociatedEdge(2);
-            edge2 = vertex.getAssociatedEdge(1);
-         }
-      }
+      Face3DReadOnly neighbor = edge.getFace();
+      int edgeIndex = neighbor.getEdges().indexOf(edge);
 
-      Face3DReadOnly neighborA = edge0.getFace();
-      Face3DReadOnly neighborB = edge1.getFace();
-      Face3DReadOnly neighborC = edge2.getFace();
+      Vertex3DReadOnly v0 = neighbor.getVertex(0);
+      Vertex3DReadOnly v1;
+      Vertex3DReadOnly v2;
 
-      Point3D neighborShpereA = new Point3D();
-      Point3D neighborShpereB = new Point3D();
-      Point3D neighborShpereC = new Point3D();
-
-      double sphereOffsetA = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, neighborA.getVertex(0).distance(neighborA.getVertex(2)));
-      double sphereOffsetB = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, neighborB.getVertex(0).distance(neighborB.getVertex(2)));
-      double sphereOffsetC = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, neighborC.getVertex(0).distance(neighborC.getVertex(2)));
-
-      neighborShpereA.scaleAdd(-sphereOffsetA, neighborA.getNormal(), neighborA.getCentroid());
-      neighborShpereB.scaleAdd(-sphereOffsetB, neighborB.getNormal(), neighborB.getCentroid());
-      neighborShpereC.scaleAdd(-sphereOffsetC, neighborC.getNormal(), neighborC.getCentroid());
-
-      HalfEdge3DReadOnly edgeAB, edgeBC, edgeCA;
-
-      if (edge0.getTwin().getFace() == neighborB)
+      if (edgeIndex == 0)
       {
-         edgeAB = edge0;
-         edgeBC = edge1;
-         edgeCA = edge2;
+         v1 = neighbor.getVertex(1);
+         v2 = neighbor.getVertex(2);
+      }
+      else if (edgeIndex == neighbor.getNumberOfEdges() - 1)
+      {
+         v1 = neighbor.getVertex(neighbor.getNumberOfEdges() - 2);
+         v2 = neighbor.getVertex(neighbor.getNumberOfEdges() - 1);
       }
       else
       {
-         edgeAB = edge1;
-         edgeBC = edge2;
-         edgeCA = edge0;
+         v1 = edge.getOrigin();
+         v2 = edge.getDestination();
       }
 
-      Vector3D sphereAToEdgeAB = new Vector3D();
-      sphereAToEdgeAB.sub(edgeAB.midpoint(), neighborShpereA);
-      Vector3D sphereBToEdgeAB = new Vector3D();
-      sphereBToEdgeAB.sub(edgeAB.midpoint(), neighborShpereB);
-      double radiusAB = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, edgeAB.length());
-      Vector3D sphereABToEdge = new Vector3D();
-      Point3D sphereAB = new Point3D();
+      EuclidGeometryTools.sphere3DPositionFromThreePoints(v0, v1, v2, largeRadius - smallRadius, neighorSubSphereCenter);
+
+      return neighorSubSphereCenter;
+   }
+
+   public static List<MeshDataHolder> toVertexSphere(Vertex3DReadOnly vertex, double largeRadius, double smallRadius, boolean addVerticesMesh)
+   {
+      List<MeshDataHolder> meshes = new ArrayList<>();
+
+      for (int edgeIndex = 0; edgeIndex < vertex.getNumberOfAssociatedEdges(); edgeIndex++)
+      {
+         meshes.add(toVertexPartialSphere(vertex, vertex.getAssociatedEdge(edgeIndex), largeRadius, smallRadius, addVerticesMesh));
+      }
+      return meshes;
+   }
+
+   public static MeshDataHolder toVertexPartialSphere(Vertex3DReadOnly vertex, HalfEdge3DReadOnly associatedEdge, double largeRadius, double smallRadius,
+                                                      boolean addVerticesMesh)
+   {
+      Vector3D sphereAToEdge = new Vector3D();
+      sphereAToEdge.sub(associatedEdge.midpoint(), computeNeighborFaceSubSphereCenter(associatedEdge.getTwin(), largeRadius, smallRadius));
+      Vector3D sphereBToEdge = new Vector3D();
+      sphereBToEdge.sub(associatedEdge.midpoint(), computeNeighborFaceSubSphereCenter(associatedEdge, largeRadius, smallRadius));
+      double radius = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, associatedEdge.length());
+      Vector3D sphereToEdge = new Vector3D();
+      Point3D sphereCenter = new Point3D();
       Vector3D limitAB = new Vector3D();
 
       DoubleFunction<Vector3D> limitABFunction = alpha ->
       {
-         sphereABToEdge.interpolate(sphereAToEdgeAB, sphereBToEdgeAB, alpha);
-         sphereABToEdge.scale(radiusAB / sphereABToEdge.length());
-         sphereAB.sub(edgeAB.midpoint(), sphereABToEdge);
-         limitAB.sub(vertex, sphereAB);
+         sphereToEdge.interpolate(sphereAToEdge, sphereBToEdge, alpha);
+         sphereToEdge.scale(radius / sphereToEdge.length());
+         sphereCenter.sub(associatedEdge.midpoint(), sphereToEdge);
+         limitAB.sub(vertex, sphereCenter);
          return limitAB;
       };
 
-      Vector3D sphereBToEdgeBC = new Vector3D();
-      sphereBToEdgeBC.sub(edgeBC.midpoint(), neighborShpereB);
-      Vector3D sphereCToEdgeBC = new Vector3D();
-      sphereCToEdgeBC.sub(edgeBC.midpoint(), neighborShpereC);
-      double radiusBC = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, edgeBC.length());
-      Vector3D sphereBCToEdge = new Vector3D();
-      Point3D sphereBC = new Point3D();
-      Vector3D limitBC = new Vector3D();
-
-      DoubleFunction<Vector3D> limitBCFunction = alpha ->
+      Vector3D limitC = new Vector3D();
+      for (int faceIndex = 0; faceIndex < vertex.getNumberOfAssociatedEdges(); faceIndex++)
       {
-         sphereBCToEdge.interpolate(sphereBToEdgeBC, sphereCToEdgeBC, alpha);
-         sphereBCToEdge.scale(radiusBC / sphereBCToEdge.length());
-         sphereBC.sub(edgeBC.midpoint(), sphereBCToEdge);
-         limitBC.sub(vertex, sphereBC);
-         return limitBC;
-      };
+         limitC.add(directionNeighborSubSphereToVertex(vertex, vertex.getAssociatedEdge(faceIndex).getFace(), largeRadius, smallRadius));
+      }
+      limitC.normalize();
 
-      Vector3D sphereCToEdgeCA = new Vector3D();
-      sphereCToEdgeCA.sub(edgeCA.midpoint(), neighborShpereC);
-      Vector3D sphereAToEdgeCA = new Vector3D();
-      sphereAToEdgeCA.sub(edgeCA.midpoint(), neighborShpereA);
-      double radiusCA = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, edgeCA.length());
-      Vector3D sphereCAToEdge = new Vector3D();
-      Point3D sphereCA = new Point3D();
-      Vector3D limitCA = new Vector3D();
-
-      DoubleFunction<Vector3D> limitCAFunction = alpha ->
-      {
-         sphereCAToEdge.interpolate(sphereCToEdgeCA, sphereAToEdgeCA, alpha);
-         sphereCAToEdge.scale(radiusCA / sphereCAToEdge.length());
-         sphereCA.sub(edgeCA.midpoint(), sphereCAToEdge);
-         limitCA.sub(vertex, sphereCA);
-         return limitCA;
-      };
-
-      return toPartialSphereMesh(vertex, limitABFunction, limitBCFunction, limitCAFunction, smallRadius, 32, false);
+      return toPartialSphereMesh(vertex, limitABFunction, limitC, smallRadius, 16, addVerticesMesh);
    }
 
-   public static MeshDataHolder toArcMesh(Point3DReadOnly arcCenter, Vector3DReadOnly arcNormal, double arcRadius, double thickness,
-                                          Vector3DReadOnly startDirection, double angleSpan, int resolution, int radialResolution)
+   private static Vector3DReadOnly directionNeighborSubSphereToVertex(Vertex3DReadOnly vertex, Face3DReadOnly neighbor, double largeRadius, double smallRadius)
+   {
+      int edgeIndex = neighbor.getVertices().indexOf(vertex);
+      Vector3D direction = new Vector3D();
+      direction.sub(vertex, computeNeighborFaceSubSphereCenter(neighbor.getEdge(edgeIndex), largeRadius, smallRadius));
+      return direction;
+   }
+
+   public static List<MeshDataHolder> toArcMesh(Point3DReadOnly arcCenter, Vector3DReadOnly arcNormal, double arcRadius, double thickness,
+                                                Vector3DReadOnly startDirection, double angleSpan, int resolution, int radialResolution)
    {
       SegmentedLine3DMeshDataGenerator generator = new SegmentedLine3DMeshDataGenerator(resolution, radialResolution);
 
@@ -289,9 +365,7 @@ public class STPShape3DMeshBuilder
 
       generator.setLineRadius(thickness);
       generator.compute(points);
-      MeshDataBuilder meshBuilder = new MeshDataBuilder();
-      Stream.of(generator.getMeshDataHolders()).forEach(meshBuilder::addMesh);
-      return meshBuilder.generateMeshDataHolder();
+      return Arrays.asList(generator.getMeshDataHolders());
    }
 
    public static MeshDataHolder toPartialSphereMesh(Point3DReadOnly sphereCenter, Tuple3DReadOnly limitA, Tuple3DReadOnly limitB, Tuple3DReadOnly limitC,
@@ -303,78 +377,25 @@ public class STPShape3DMeshBuilder
    public static MeshDataHolder toPartialSphereMesh(Point3DReadOnly sphereCenter, Tuple3DReadOnly limitA, Tuple3DReadOnly limitB, Tuple3DReadOnly limitC,
                                                     double sphereRadius, int resolution, boolean addVerticesMesh)
    {
-      List<Point3D32> points = new ArrayList<>();
-      List<Vector3D32> normals = new ArrayList<>();
-      List<TexCoord2f> textPoints = new ArrayList<>();
+      return toPartialSphereMesh(sphereCenter,
+                                 alpha -> interpolateVector3D(limitA, limitB, alpha),
+                                 alpha -> interpolateVector3D(limitB, limitC, alpha),
+                                 alpha -> interpolateVector3D(limitC, limitA, alpha),
+                                 sphereRadius,
+                                 resolution,
+                                 addVerticesMesh);
+   }
 
-      Point3D limitAB = new Point3D();
-
-      for (int longitude = 0; longitude < resolution; longitude++)
-      {
-         int latitudeResolution = (int) Math.round(EuclidCoreTools.interpolate(resolution, 1, longitude / (resolution - 1.0)));
-
-         for (int latitude = 0; latitude < latitudeResolution; latitude++)
-         {
-            double abAlpha = latitudeResolution == 1 ? 0.0 : latitude / (latitudeResolution - 1.0);
-            double abcAlpha = longitude / (resolution - 1.0);
-            limitAB.interpolate(limitA, limitB, abAlpha);
-            Vector3D32 direction = new Vector3D32();
-            direction.interpolate(limitAB, limitC, abcAlpha);
-            direction.normalize();
-            Point3D32 point = new Point3D32();
-            point.scaleAdd(sphereRadius, direction, sphereCenter);
-            points.add(point);
-            normals.add(direction);
-            textPoints.add(new TexCoord2f(longitude / (resolution - 1), latitude == 0 ? 0 : latitude / (latitudeResolution - 1)));
-         }
-      }
-
-      TIntArrayList triangleIndices = new TIntArrayList();
-
-      int nextLatitudeResolution = resolution;
-      int longitudeStartIndex = 0;
-
-      for (int longitude = 0; longitude < resolution - 1; longitude++)
-      {
-         int latitudeResolution = nextLatitudeResolution;
-         nextLatitudeResolution = (int) Math.round(EuclidCoreTools.interpolate(resolution, 1, (longitude + 1.0) / (resolution - 1.0)));
-         int nextLongitudeStartIndex = longitudeStartIndex + latitudeResolution;
-
-         for (int latitude = 0; latitude < latitudeResolution - 1; latitude++)
-         {
-            if (latitude < nextLatitudeResolution)
-            {
-               triangleIndices.add(longitudeStartIndex + latitude);
-               triangleIndices.add(nextLongitudeStartIndex + latitude);
-               triangleIndices.add(longitudeStartIndex + latitude + 1);
-            }
-
-            if (latitude < nextLatitudeResolution - 1)
-            {
-               triangleIndices.add(nextLongitudeStartIndex + latitude);
-               triangleIndices.add(nextLongitudeStartIndex + latitude + 1);
-               triangleIndices.add(longitudeStartIndex + latitude + 1);
-            }
-         }
-
-         longitudeStartIndex += latitudeResolution;
-      }
-
-      MeshDataHolder partialSphereMesh = new MeshDataHolder(points.toArray(new Point3D32[0]),
-                                                            textPoints.toArray(new TexCoord2f[0]),
-                                                            triangleIndices.toArray(),
-                                                            normals.toArray(new Vector3D32[0]));
-      if (!addVerticesMesh)
-      {
-         return partialSphereMesh;
-      }
-      else
-      {
-         MeshDataBuilder meshBuilder = new MeshDataBuilder();
-         meshBuilder.addMesh(partialSphereMesh);
-         points.forEach(p -> meshBuilder.addTetrahedron(0.005, p));
-         return meshBuilder.generateMeshDataHolder();
-      }
+   public static MeshDataHolder toPartialSphereMesh(Point3DReadOnly sphereCenter, DoubleFunction<? extends Tuple3DReadOnly> limitABFunction,
+                                                    Tuple3DReadOnly limitC, double sphereRadius, int resolution, boolean addVerticesMesh)
+   {
+      return toPartialSphereMesh(sphereCenter,
+                                 limitABFunction,
+                                 alpha -> interpolateVector3D(limitABFunction.apply(1.0), limitC, alpha),
+                                 alpha -> interpolateVector3D(limitC, limitABFunction.apply(0.0), alpha),
+                                 sphereRadius,
+                                 resolution,
+                                 addVerticesMesh);
    }
 
    public static MeshDataHolder toPartialSphereMesh(Point3DReadOnly sphereCenter, DoubleFunction<? extends Tuple3DReadOnly> limitABFunction,
@@ -432,7 +453,7 @@ public class STPShape3DMeshBuilder
 
       { // Last vertex lies on limitC
          Vector3D32 direction = new Vector3D32();
-         direction.set(limitCAFunction.apply(0.0));
+         direction.set(limitBCFunction.apply(1.0));
          direction.normalize();
          Point3D32 point = new Point3D32();
          point.scaleAdd(sphereRadius, direction, sphereCenter);
@@ -581,5 +602,12 @@ public class STPShape3DMeshBuilder
          Arrays.asList(points).forEach(p -> meshBuilder.addTetrahedron(0.005, p));
          return meshBuilder.generateMeshDataHolder();
       }
+   }
+
+   public static Vector3D interpolateVector3D(Tuple3DReadOnly tuple0, Tuple3DReadOnly tuplef, double alpha)
+   {
+      Vector3D interpolated = new Vector3D();
+      interpolated.interpolate(tuple0, tuplef, alpha);
+      return interpolated;
    }
 }
