@@ -11,34 +11,57 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.RowConstraints?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
    <bottom>
-      <AnchorPane prefWidth="200.0" BorderPane.alignment="CENTER">
+      <AnchorPane BorderPane.alignment="CENTER">
          <children>
-            <GridPane hgap="10.0" layoutX="14.0" layoutY="67.0" vgap="5.0" AnchorPane.bottomAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <GridPane hgap="10.0" layoutX="14.0" layoutY="67.0" vgap="5.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
                <columnConstraints>
-                  <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" />
-                  <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" />
-                  <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" />
-                  <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
+                  <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" />
                </columnConstraints>
                <rowConstraints>
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
                   <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
                   <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
                </rowConstraints>
                <children>
                   <Label text="Angular velocity A" GridPane.rowIndex="1" />
-                  <Spinner fx:id="angularVelocityAX" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                  <Spinner fx:id="angularVelocityAY" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-                  <Spinner fx:id="angularVelocityAZ" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+                  <Spinner fx:id="angularVelocityAXSpinner" prefWidth="90.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                  <Spinner fx:id="angularVelocityAYSpinner" prefWidth="90.0" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                  <Spinner fx:id="angularVelocityAZSpinner" prefWidth="90.0" GridPane.columnIndex="3" GridPane.rowIndex="1" />
                   <Label text="Angular velocity B" GridPane.rowIndex="2" />
-                  <Spinner fx:id="angularVelocityBX" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                  <Spinner fx:id="angularVelocityBY" GridPane.columnIndex="2" GridPane.rowIndex="2" />
-                  <Spinner fx:id="angularVelocityBZ" GridPane.columnIndex="3" GridPane.rowIndex="2" />
-                  <ToggleButton fx:id="runButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Run" GridPane.columnIndex="1" />
-                  <ToggleButton fx:id="rewindButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Rewind" GridPane.columnIndex="2" />
-                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#reset" text="Reset" GridPane.columnIndex="3" />
+                  <Spinner fx:id="angularVelocityBXSpinner" prefWidth="90.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                  <Spinner fx:id="angularVelocityBYSpinner" prefWidth="90.0" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                  <Spinner fx:id="angularVelocityBZSpinner" prefWidth="90.0" GridPane.columnIndex="3" GridPane.rowIndex="2" />
+                  <ToggleButton fx:id="runButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Run" GridPane.columnIndex="2" />
+                  <ToggleButton fx:id="rewindButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Rewind" GridPane.columnIndex="3" />
+                  <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#reset" text="Reset" GridPane.columnIndex="4" />
+                  <Label text="Position A" GridPane.columnIndex="4" GridPane.rowIndex="1" />
+                  <Label text="Position B" GridPane.columnIndex="4" GridPane.rowIndex="2" />
+                  <Label text="YawPitchRoll B" GridPane.columnIndex="4" GridPane.rowIndex="4" />
+                  <Label text="YawPitchRoll A" GridPane.columnIndex="4" GridPane.rowIndex="3" />
+                  <Spinner fx:id="positionAXSpinner" prefWidth="90.0" GridPane.columnIndex="5" GridPane.rowIndex="1" />
+                  <Spinner fx:id="positionAYSpinner" prefWidth="90.0" GridPane.columnIndex="6" GridPane.rowIndex="1" />
+                  <Spinner fx:id="positionAZSpinner" prefWidth="90.0" GridPane.columnIndex="7" GridPane.rowIndex="1" />
+                  <Spinner fx:id="positionBXSpinner" prefWidth="90.0" GridPane.columnIndex="5" GridPane.rowIndex="2" />
+                  <Spinner fx:id="positionBYSpinner" prefWidth="90.0" GridPane.columnIndex="6" GridPane.rowIndex="2" />
+                  <Spinner fx:id="positionBZSpinner" prefWidth="90.0" GridPane.columnIndex="7" GridPane.rowIndex="2" />
+                  <Spinner fx:id="yawASpinner" prefWidth="90.0" GridPane.columnIndex="5" GridPane.rowIndex="3" />
+                  <Spinner fx:id="pitchASpinner" prefWidth="90.0" GridPane.columnIndex="6" GridPane.rowIndex="3" />
+                  <Spinner fx:id="rollASpinner" prefWidth="90.0" GridPane.columnIndex="7" GridPane.rowIndex="3" />
+                  <Spinner fx:id="yawBSpinner" prefWidth="90.0" GridPane.columnIndex="5" GridPane.rowIndex="4" />
+                  <Spinner fx:id="pitchBSpinner" prefWidth="90.0" GridPane.columnIndex="6" GridPane.rowIndex="4" />
+                  <Spinner fx:id="rollBSpinner" prefWidth="90.0" GridPane.columnIndex="7" GridPane.rowIndex="4" />
+                  <ToggleButton fx:id="enableGJKButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Enable GJK" GridPane.columnIndex="1" />
                </children>
             </GridPane>
          </children>

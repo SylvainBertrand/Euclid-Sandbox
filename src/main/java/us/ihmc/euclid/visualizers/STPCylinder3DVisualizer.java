@@ -12,6 +12,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
+import us.ihmc.euclid.shape.collision.shapeModifier.Cylinder3DSTPBoundingVolume;
 import us.ihmc.euclid.shape.primitives.Cylinder3D;
 import us.ihmc.euclid.shape.tools.EuclidShapeRandomTools;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
@@ -41,8 +42,10 @@ public class STPCylinder3DVisualizer extends Application
 //      for (int i = 0; i < 10; i++)
       {
          Cylinder3D cylinder3D = EuclidShapeRandomTools.nextCylinder3D(random);
-         cylinder3D.setSize(0.2, 1.0);
-         STPCylinder3D stpCylinder = new STPCylinder3D(cylinder3D);
+         cylinder3D.setSize(0.8, 0.3);
+         Cylinder3DSTPBoundingVolume stpCylinder = new Cylinder3DSTPBoundingVolume();
+         stpCylinder.setMargins(0.05, 0.6);
+         stpCylinder.setShape3D(cylinder3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toCylinder3DMesh(cylinder3D, Color.DARKCYAN));
 
          int resolution = 150;

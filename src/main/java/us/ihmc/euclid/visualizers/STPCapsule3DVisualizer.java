@@ -12,6 +12,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
+import us.ihmc.euclid.shape.collision.shapeModifier.Capsule3DSTPBoundingVolume;
 import us.ihmc.euclid.shape.primitives.Capsule3D;
 import us.ihmc.euclid.shape.tools.EuclidShapeRandomTools;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
@@ -38,12 +39,14 @@ public class STPCapsule3DVisualizer extends Application
       view3dFactory.addNodeToView(light);
 
       Random random = new Random(34106);
-//      for (int i = 0; i < 10; i++)
+      //      for (int i = 0; i < 10; i++)
       {
          Capsule3D capsule3D = EuclidShapeRandomTools.nextCapsule3D(random);
          capsule3D.setSize(1.0, 0.3);
-//         capsule3D.getPosition().setToZero();
-         STPCapsule3D stpCapsule = new STPCapsule3D(capsule3D);
+         //         capsule3D.getPosition().setToZero();
+         Capsule3DSTPBoundingVolume stpCapsule = new Capsule3DSTPBoundingVolume();
+         stpCapsule.setMargins(0.005, 0.03);
+         stpCapsule.setShape3D(capsule3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(capsule3D, Color.DARKCYAN));
 
          int resolution = 150;
@@ -52,11 +55,11 @@ public class STPCapsule3DVisualizer extends Application
                                                                    resolution,
                                                                    resolution,
                                                                    UVMeshType.HULL));
-         //         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCapsule,
-         //                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
-         //                                                                   resolution,
-         //                                                                   resolution,
-         //                                                                   UVMeshType.SUPPORT_DIRECTIONS));
+         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCapsule,
+                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+                                                                   resolution,
+                                                                   resolution,
+                                                                   UVMeshType.SUPPORT_DIRECTIONS));
       }
 
       primaryStage.setTitle(getClass().getSimpleName());

@@ -10,6 +10,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
+import us.ihmc.euclid.shape.collision.shapeModifier.ConvexPolytope3DSTPBoundingVolume;
 import us.ihmc.euclid.shape.convexPolytope.tools.EuclidPolytopeFactories;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.visualizers.Shape3DMeshFactories.UVMeshType;
@@ -30,8 +31,10 @@ public class STPConvexPolytope3DVisualizer extends Application
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
-      STPConvexPolytope3D stpPolytope = new STPConvexPolytope3D(EuclidPolytopeFactories.newCube(0.5));
-      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(stpPolytope.getPolytope().getFaces(), Color.DARKCYAN));
+      ConvexPolytope3DSTPBoundingVolume stpPolytope = new ConvexPolytope3DSTPBoundingVolume();
+      stpPolytope.setMargins(0.005, 0.01);
+      stpPolytope.setShape3D(EuclidPolytopeFactories.newCube(0.5));
+      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(stpPolytope.getShape3D().getFaces(), Color.DARKCYAN));
       int resolution = 150;
       view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.HULL));
 //      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.SUPPORT_DIRECTIONS));
