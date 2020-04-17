@@ -1,6 +1,7 @@
 package us.ihmc.euclid.visualizers;
 
 import java.util.List;
+import java.util.Random;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -11,7 +12,7 @@ import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
 import javafx.stage.Stage;
 import us.ihmc.euclid.shape.collision.shapeModifier.ConvexPolytope3DSTPBoundingVolume;
-import us.ihmc.euclid.shape.convexPolytope.tools.EuclidPolytopeFactories;
+import us.ihmc.euclid.shape.tools.EuclidShapeRandomTools;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.visualizers.Shape3DMeshFactories.UVMeshType;
 import us.ihmc.javaFXToolkit.cameraControllers.FocusBasedCameraMouseEventHandler;
@@ -31,9 +32,11 @@ public class STPConvexPolytope3DVisualizer extends Application
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
+      Random random = new Random(524);
+
       ConvexPolytope3DSTPBoundingVolume stpPolytope = new ConvexPolytope3DSTPBoundingVolume();
-      stpPolytope.setMargins(0.025, 0.05);
-      stpPolytope.setShape3D(EuclidPolytopeFactories.newCylinder(1.0, 0.3, 20));
+      stpPolytope.setMargins(0.08, 0.10);
+      stpPolytope.setShape3D(EuclidShapeRandomTools.nextConeConvexPolytope3D(random));
       view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(stpPolytope.getShape3D().getFaces(), Color.DARKCYAN));
       view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPConvexPolytope3DMesh(stpPolytope));
       int resolution = 150;

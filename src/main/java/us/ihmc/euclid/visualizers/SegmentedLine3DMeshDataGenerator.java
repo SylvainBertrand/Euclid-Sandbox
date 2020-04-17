@@ -1,9 +1,11 @@
 package us.ihmc.euclid.visualizers;
 
 import us.ihmc.commons.Epsilons;
-import us.ihmc.euclid.matrix.Matrix3D;
+import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
+import us.ihmc.euclid.matrix.RotationMatrix;
 import us.ihmc.euclid.matrix.interfaces.Matrix3DReadOnly;
-import us.ihmc.euclid.tools.TupleTools;
+import us.ihmc.euclid.matrix.interfaces.RotationMatrixBasics;
+import us.ihmc.euclid.matrix.interfaces.RotationMatrixReadOnly;
 import us.ihmc.euclid.tuple3D.Point3D32;
 import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.euclid.tuple3D.Vector3D32;
@@ -97,9 +99,8 @@ public final class SegmentedLine3DMeshDataGenerator
       compute(waypointPositions, null);
    }
 
-   /** Using a Matrix3D instead of RotationMatrix to speed up calculation. */
-   private final Matrix3D rotation = new Matrix3D();
-   private final Matrix3D previousRotation = new Matrix3D();
+   private final RotationMatrix rotation = new RotationMatrix();
+   private final RotationMatrix previousRotation = new RotationMatrix();
 
    /**
     * Update the meshes of this generator to represent a segmented line 3D that goes through the given
@@ -270,9 +271,6 @@ public final class SegmentedLine3DMeshDataGenerator
       return meshDataHolders;
    }
 
-   private final Vector3D xAxis = new Vector3D();
-   private final Vector3D yAxis = new Vector3D();
-
    /**
     * Computes the rotation of current section with respect to zUp and which is the closest rotation
     * from the previous section.
@@ -285,28 +283,11 @@ public final class SegmentedLine3DMeshDataGenerator
     * @param previousRotation  the rotation of the previous section. Not modified.
     * @param rotationToPack    the rotation of this section. Modified.
     */
-   private void computeRotation(Vector3DReadOnly previousDirection, Vector3DReadOnly sectionDirection, Matrix3DReadOnly previousRotation,
-                                Matrix3D rotationToPack)
+   private void computeRotation(Vector3DReadOnly previousDirection, Vector3DReadOnly sectionDirection, RotationMatrixReadOnly previousRotation,
+                                RotationMatrixBasics rotationToPack)
    {
-      xAxis.cross(previousDirection, sectionDirection);
-      double length = xAxis.length();
-
-      if (length < 1.0e-16)
-      {
-         rotationToPack.set(previousRotation);
-         return;
-      }
-
-      xAxis.normalize();
-
-      // Test that the new rotation is not flipping around sectionDirection w.r.t. the previous rotation.
-      if (TupleTools.dot(previousRotation.getM00(), previousRotation.getM10(), previousRotation.getM20(), xAxis) < 0.0)
-         xAxis.negate();
-
-      yAxis.cross(sectionDirection, xAxis);
-      rotationToPack.setColumn(0, xAxis);
-      rotationToPack.setColumn(1, yAxis);
-      rotationToPack.setColumn(2, sectionDirection);
+      EuclidGeometryTools.orientation3DFromFirstToSecondVector3D(previousDirection, sectionDirection, rotationToPack);
+      rotationToPack.preMultiply(previousRotation);
    }
 
    private final Vector3D tempDirection = new Vector3D();

@@ -43,16 +43,17 @@ public class STPRamp3DVisualizer extends Application
          stpRamp.setMargins(0.005, 0.2);
          stpRamp.setShape3D(ramp3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toRamp3DMesh(ramp3D, Color.DARKCYAN));
+         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPRamp3DMesh(stpRamp));
 
          //         view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(ramp3D.asConvexPolytope(), Color.PINK.deriveColor(0.0, 1.0, 1.0, 0.2)));
          //         view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsNormalMesh(ramp3D.asConvexPolytope().getFaces()));
          //         view3dFactory.addNodeToView(Shape3DMeshFactories.toHalfEdge3DsMesh(ramp3D.asConvexPolytope().getHalfEdges(), Color.BLACK, 0.01));
          int resolution = 150;
-         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpRamp,
-                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
-                                                                   resolution,
-                                                                   resolution,
-                                                                   UVMeshType.HULL));
+//         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpRamp,
+//                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+//                                                                   resolution,
+//                                                                   resolution,
+//                                                                   UVMeshType.HULL));
          view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpRamp,
                                                                    Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
                                                                    resolution,

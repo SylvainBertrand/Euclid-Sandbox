@@ -39,26 +39,27 @@ public class STPCylinder3DVisualizer extends Application
       view3dFactory.addNodeToView(light);
 
       Random random = new Random(34106);
-//      for (int i = 0; i < 10; i++)
+      //      for (int i = 0; i < 10; i++)
       {
          Cylinder3D cylinder3D = EuclidShapeRandomTools.nextCylinder3D(random);
          cylinder3D.setSize(0.8, 0.3);
          Cylinder3DSTPBoundingVolume stpCylinder = new Cylinder3DSTPBoundingVolume();
-         stpCylinder.setMargins(0.05, 0.6);
+         stpCylinder.setMargins(0.05, 0.15);
          stpCylinder.setShape3D(cylinder3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toCylinder3DMesh(cylinder3D, Color.DARKCYAN));
+         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPCylinder3DMesh(stpCylinder));
 
          int resolution = 150;
+//         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCylinder,
+//                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+//                                                                   resolution,
+//                                                                   resolution,
+//                                                                   UVMeshType.HULL));
          view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCylinder,
                                                                    Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
                                                                    resolution,
                                                                    resolution,
-                                                                   UVMeshType.HULL));
-         //         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCylinder,
-         //                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
-         //                                                                   resolution,
-         //                                                                   resolution,
-         //                                                                   UVMeshType.SUPPORT_DIRECTIONS));
+                                                                   UVMeshType.SUPPORT_VERTICES));
       }
 
       primaryStage.setTitle(getClass().getSimpleName());
