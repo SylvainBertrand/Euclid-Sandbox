@@ -48,18 +48,19 @@ public class STPCapsule3DVisualizer extends Application
          stpCapsule.setMargins(0.005, 0.03);
          stpCapsule.setShape3D(capsule3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(capsule3D, Color.DARKCYAN));
+         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPCapsule3DMesh(stpCapsule));
 
          int resolution = 150;
+//         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCapsule,
+//                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
+//                                                                   resolution,
+//                                                                   resolution,
+//                                                                   UVMeshType.HULL));
          view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCapsule,
                                                                    Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
                                                                    resolution,
                                                                    resolution,
-                                                                   UVMeshType.HULL));
-         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCapsule,
-                                                                   Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2),
-                                                                   resolution,
-                                                                   resolution,
-                                                                   UVMeshType.SUPPORT_DIRECTIONS));
+                                                                   UVMeshType.SUPPORT_VERTICES));
       }
 
       primaryStage.setTitle(getClass().getSimpleName());

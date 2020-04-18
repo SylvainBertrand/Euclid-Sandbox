@@ -376,7 +376,7 @@ public class Shape3DMeshFactories
          for (int i = 0; i < points.length; i++)
          {
             Point3D32 point = points[i];
-            builder.addTetrahedron(0.0005f, point);
+            builder.addTetrahedron(0.005f, point);
 //            builder.addMesh(MeshDataGenerator.Sphere(0.0005f, 6, 6), point);
          }
          MeshView meshView = new MeshView(builder.generateMesh());

@@ -13,7 +13,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.MeshView;
 import us.ihmc.euclid.axisAngle.AxisAngle;
 import us.ihmc.euclid.geometry.tools.EuclidGeometryTools;
+import us.ihmc.euclid.matrix.RotationMatrix;
 import us.ihmc.euclid.shape.collision.shapeModifier.Box3DSTPBoundingVolume;
+import us.ihmc.euclid.shape.collision.shapeModifier.Capsule3DSTPBoundingVolume;
 import us.ihmc.euclid.shape.collision.shapeModifier.ConvexPolytope3DSTPBoundingVolume;
 import us.ihmc.euclid.shape.collision.shapeModifier.Cylinder3DSTPBoundingVolume;
 import us.ihmc.euclid.shape.collision.shapeModifier.Ramp3DSTPBoundingVolume;
@@ -22,6 +24,7 @@ import us.ihmc.euclid.shape.convexPolytope.interfaces.Face3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.HalfEdge3DReadOnly;
 import us.ihmc.euclid.shape.convexPolytope.interfaces.Vertex3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.BoxPolytope3DView;
+import us.ihmc.euclid.shape.primitives.interfaces.Capsule3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.Cylinder3DReadOnly;
 import us.ihmc.euclid.shape.primitives.interfaces.RampPolytope3DView;
 import us.ihmc.euclid.tools.EuclidCoreTools;
@@ -32,6 +35,7 @@ import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.euclid.tuple3D.Vector3D32;
 import us.ihmc.euclid.tuple3D.interfaces.Point3DReadOnly;
 import us.ihmc.euclid.tuple3D.interfaces.Tuple3DReadOnly;
+import us.ihmc.euclid.tuple3D.interfaces.UnitVector3DReadOnly;
 import us.ihmc.euclid.tuple3D.interfaces.Vector3DBasics;
 import us.ihmc.euclid.tuple3D.interfaces.Vector3DReadOnly;
 import us.ihmc.graphicsDescription.MeshDataBuilder;
@@ -42,6 +46,8 @@ import us.ihmc.javaFXToolkit.shapes.JavaFXMultiColorMeshBuilder;
 
 public class STPShape3DMeshBuilder
 {
+   private static final double TwoPi = 2.0 * Math.PI;
+
    public static Node toSTPBox3DMesh(Box3DSTPBoundingVolume stpBox3D)
    {
       BoxPolytope3DView boxPolytope = stpBox3D.getShape3D().asConvexPolytope();
@@ -60,76 +66,165 @@ public class STPShape3DMeshBuilder
       return toSTPConvexPolytope3DMesh(convexPolytope, largeRadius, smallRadius);
    }
 
+   public static Node toSTPCapsule3DMesh(Capsule3DSTPBoundingVolume stpCapsule3D)
+   {
+      Capsule3DReadOnly capsule = stpCapsule3D.getShape3D();
+      double largeRadius = stpCapsule3D.getLargeRadius();
+      double smallRadius = stpCapsule3D.getSmallRadius();
+
+      double length = capsule.getLength();
+      UnitVector3DReadOnly axis = capsule.getAxis();
+      Point3DReadOnly position = capsule.getPosition();
+      Point3DReadOnly topCenter = capsule.getTopCenter();
+      Point3DReadOnly bottomCenter = capsule.getBottomCenter();
+
+      JavaFXMultiColorMeshBuilder meshBuilder = new JavaFXMultiColorMeshBuilder();
+
+      // Side face
+      Vector3D axisOrthogonal = newOrthogonalVector(axis);
+      double sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, length);
+      Point3D sphereCenter = new Point3D();
+      sphereCenter.scaleAdd(-sphereOffset, axisOrthogonal, position);
+
+      UnitVector3D startDirection = new UnitVector3D();
+      UnitVector3D endDirection = new UnitVector3D();
+
+      startDirection.sub(bottomCenter, sphereCenter);
+      endDirection.sub(topCenter, sphereCenter);
+
+      MeshDataHolder arc = toArcPointsAndNormals(sphereCenter, largeRadius, startDirection, endDirection, 64);
+      meshBuilder.addMesh(applyRevolution(arc, position, axis, 0.0, TwoPi, 64, false), Color.CORNFLOWERBLUE);
+
+      double limitPositionOnAxis = 0.5 * length * largeRadius / (largeRadius - smallRadius);
+      double limitRadius = sphereOffset * smallRadius / (largeRadius - smallRadius);
+      MeshDataHolder sideLimitMesh = MeshDataGenerator.ArcTorus(0.0, TwoPi, limitRadius, 0.001, 64);
+      sideLimitMesh = MeshDataHolder.rotate(sideLimitMesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(axis));
+      sideLimitMesh = MeshDataHolder.translate(sideLimitMesh, position);
+      Arrays.asList(sideLimitMesh.getVertices()).forEach(v -> v.scaleAdd(limitPositionOnAxis, axis, v));
+      meshBuilder.addMesh(sideLimitMesh, Color.CORNFLOWERBLUE);
+
+      Arrays.asList(sideLimitMesh.getVertices()).forEach(v -> v.scaleAdd(-2.0 * limitPositionOnAxis, axis, v));
+      meshBuilder.addMesh(sideLimitMesh, Color.CORNFLOWERBLUE);
+
+      // Cap faces
+      startDirection.set(axis);
+
+      arc = toArcPointsAndNormals(topCenter, smallRadius, endDirection, startDirection, 64);
+      MeshDataHolder capMesh = applyRevolution(arc, position, axis, 0.0, TwoPi, 64, false);
+      meshBuilder.addMesh(capMesh, Color.CORNFLOWERBLUE);
+
+      // Flipping the meshes around to draw the bottom cap
+      RotationMatrix flipRotation = new RotationMatrix();
+      flipRotation.setAxisAngle(axisOrthogonal.getX(), axisOrthogonal.getY(), axisOrthogonal.getZ(), Math.PI);
+      Arrays.asList(capMesh.getVertices()).forEach(v ->
+      {
+         v.sub(position);
+         flipRotation.transform(v);
+         v.add(position);
+      });
+      Arrays.asList(capMesh.getVertexNormals()).forEach(n -> flipRotation.transform(n));
+      meshBuilder.addMesh(capMesh, Color.CORNFLOWERBLUE);
+
+      MeshView meshView = new MeshView(meshBuilder.generateMesh());
+      meshView.setMaterial(meshBuilder.generateMaterial());
+      return meshView;
+   }
+
    public static Node toSTPCylinder3DMesh(Cylinder3DSTPBoundingVolume stpCylinder3D)
    {
       Cylinder3DReadOnly cylinder = stpCylinder3D.getShape3D();
       double largeRadius = stpCylinder3D.getLargeRadius();
       double smallRadius = stpCylinder3D.getSmallRadius();
 
+      double length = cylinder.getLength();
+      double radius = cylinder.getRadius();
+      UnitVector3DReadOnly axis = cylinder.getAxis();
+      Point3DReadOnly position = cylinder.getPosition();
+      Point3DReadOnly topCenter = cylinder.getTopCenter();
+      Point3DReadOnly bottomCenter = cylinder.getBottomCenter();
+
       JavaFXMultiColorMeshBuilder meshBuilder = new JavaFXMultiColorMeshBuilder();
 
       { // Side face
-         Vector3D axisOrthogonal = newOrthogonalVector(cylinder.getAxis());
-         double sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, cylinder.getLength());
+         Vector3D axisOrthogonal = newOrthogonalVector(axis);
+         double sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, length);
          Point3D sphereCenter = new Point3D();
-         sphereCenter.scaleAdd(-sphereOffset + cylinder.getRadius(), axisOrthogonal, cylinder.getPosition());
+         sphereCenter.scaleAdd(-sphereOffset + radius, axisOrthogonal, position);
 
          UnitVector3D startDirection = new UnitVector3D();
          UnitVector3D endDirection = new UnitVector3D();
 
-         startDirection.scaleAdd(cylinder.getRadius(), axisOrthogonal, cylinder.getBottomCenter());
+         startDirection.scaleAdd(radius, axisOrthogonal, bottomCenter);
          startDirection.sub(sphereCenter);
-         endDirection.scaleAdd(cylinder.getRadius(), axisOrthogonal, cylinder.getTopCenter());
+         endDirection.scaleAdd(radius, axisOrthogonal, topCenter);
          endDirection.sub(sphereCenter);
 
          MeshDataHolder arc = toArcPointsAndNormals(sphereCenter, largeRadius, startDirection, endDirection, 64);
-         meshBuilder.addMesh(applyRevolution(arc, cylinder.getPosition(), cylinder.getAxis(), 0.0, 2.0 * Math.PI, 64, true), Color.CORNFLOWERBLUE);
+         meshBuilder.addMesh(applyRevolution(arc, position, axis, 0.0, TwoPi, 64, false), Color.CORNFLOWERBLUE);
+
+         double limitPositionOnAxis = 0.5 * length * largeRadius / (largeRadius - smallRadius);
+         double limitRadius = radius + sphereOffset * smallRadius / (largeRadius - smallRadius);
+         MeshDataHolder sideLimitMesh = MeshDataGenerator.ArcTorus(0.0, TwoPi, limitRadius, 0.001, 64);
+         sideLimitMesh = MeshDataHolder.rotate(sideLimitMesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(axis));
+         sideLimitMesh = MeshDataHolder.translate(sideLimitMesh, position);
+         Arrays.asList(sideLimitMesh.getVertices()).forEach(v -> v.scaleAdd(limitPositionOnAxis, axis, v));
+         meshBuilder.addMesh(sideLimitMesh, Color.CORNFLOWERBLUE);
+
+         Arrays.asList(sideLimitMesh.getVertices()).forEach(v -> v.scaleAdd(-2.0 * limitPositionOnAxis, axis, v));
+         meshBuilder.addMesh(sideLimitMesh, Color.CORNFLOWERBLUE);
       }
 
-      { // Top cap face
-         double sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, 2.0 * cylinder.getRadius());
+      { // Cap faces
+         double sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, 2.0 * radius);
          Point3D sphereCenter = new Point3D();
-         sphereCenter.scaleAdd(-sphereOffset, cylinder.getAxis(), cylinder.getTopCenter());
+         sphereCenter.scaleAdd(-sphereOffset, axis, topCenter);
 
-         Vector3D axisOrthogonal = newOrthogonalVector(cylinder.getAxis());
+         Vector3D axisOrthogonal = newOrthogonalVector(axis);
 
          UnitVector3D boundaryDirection = new UnitVector3D();
-         boundaryDirection.scaleAdd(cylinder.getRadius(), axisOrthogonal, cylinder.getTopCenter());
+         boundaryDirection.scaleAdd(radius, axisOrthogonal, topCenter);
          boundaryDirection.sub(sphereCenter);
 
-         MeshDataHolder arc = toArcPointsAndNormals(sphereCenter, largeRadius, boundaryDirection, cylinder.getAxis(), 64);
-         meshBuilder.addMesh(applyRevolution(arc, cylinder.getPosition(), cylinder.getAxis(), 0.0, 2.0 * Math.PI, 64, true), Color.CORNFLOWERBLUE);
+         MeshDataHolder arc = toArcPointsAndNormals(sphereCenter, largeRadius, boundaryDirection, axis, 64);
+         MeshDataHolder capMesh = applyRevolution(arc, position, axis, 0.0, TwoPi, 64, false);
+         meshBuilder.addMesh(capMesh, Color.CORNFLOWERBLUE);
+
+         double limitPositionOnAxis = 0.5 * length + sphereOffset * smallRadius / (largeRadius - smallRadius);
+         double limitRadius = radius * largeRadius / (largeRadius - smallRadius);
+         MeshDataHolder capLimitMesh = MeshDataGenerator.ArcTorus(0.0, TwoPi, limitRadius, 0.001, 64);
+         capLimitMesh = MeshDataHolder.rotate(capLimitMesh, EuclidGeometryTools.axisAngleFromZUpToVector3D(axis));
+         capLimitMesh = MeshDataHolder.translate(capLimitMesh, position);
+         Arrays.asList(capLimitMesh.getVertices()).forEach(v -> v.scaleAdd(limitPositionOnAxis, axis, v));
+         meshBuilder.addMesh(capLimitMesh, Color.CORNFLOWERBLUE);
+
+         // Flipping the meshes around to draw the bottom cap
+         RotationMatrix flipRotation = new RotationMatrix();
+         flipRotation.setAxisAngle(axisOrthogonal.getX(), axisOrthogonal.getY(), axisOrthogonal.getZ(), Math.PI);
+         Arrays.asList(capMesh.getVertices()).forEach(v ->
+         {
+            v.sub(position);
+            flipRotation.transform(v);
+            v.add(position);
+         });
+         Arrays.asList(capMesh.getVertexNormals()).forEach(n -> flipRotation.transform(n));
+         meshBuilder.addMesh(capMesh, Color.CORNFLOWERBLUE);
+
+         Arrays.asList(capLimitMesh.getVertices()).forEach(v -> v.scaleAdd(-2.0 * limitPositionOnAxis, axis, v));
+         meshBuilder.addMesh(capLimitMesh, Color.CORNFLOWERBLUE);
       }
 
-      { // Bottom cap face
-         double sphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, 2.0 * cylinder.getRadius());
-         Point3D sphereCenter = new Point3D();
-         sphereCenter.scaleAdd(sphereOffset, cylinder.getAxis(), cylinder.getBottomCenter());
-
-         Vector3D axisOrthogonal = newOrthogonalVector(cylinder.getAxis());
-
-         UnitVector3D boundaryDirection = new UnitVector3D();
-         boundaryDirection.scaleAdd(cylinder.getRadius(), axisOrthogonal, cylinder.getBottomCenter());
-         boundaryDirection.sub(sphereCenter);
-         Vector3D axisNegated = new Vector3D(cylinder.getAxis());
-         axisNegated.negate();
-
-         MeshDataHolder arc = toArcPointsAndNormals(sphereCenter, largeRadius, axisNegated, boundaryDirection, 64);
-         meshBuilder.addMesh(applyRevolution(arc, cylinder.getPosition(), cylinder.getAxis(), 0.0, 2.0 * Math.PI, 64, true), Color.CORNFLOWERBLUE);
-      }
-
-      { // Top edge
-         Vector3D axisOrthogonal = newOrthogonalVector(cylinder.getAxis());
+      { // Edges
+         Vector3D axisOrthogonal = newOrthogonalVector(axis);
          Point3D arcCenter = new Point3D();
-         arcCenter.scaleAdd(cylinder.getRadius(), axisOrthogonal, cylinder.getTopCenter());
+         arcCenter.scaleAdd(radius, axisOrthogonal, topCenter);
 
-         double capSphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, 2.0 * cylinder.getRadius());
+         double capSphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, 2.0 * radius);
          Point3D capSphereCenter = new Point3D();
-         capSphereCenter.scaleAdd(-capSphereOffset, cylinder.getAxis(), cylinder.getTopCenter());
+         capSphereCenter.scaleAdd(-capSphereOffset, axis, topCenter);
 
-         double sideSphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, cylinder.getLength());
+         double sideSphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, length);
          Point3D sideSphereCenter = new Point3D();
-         sideSphereCenter.scaleAdd(-sideSphereOffset + cylinder.getRadius(), axisOrthogonal, cylinder.getPosition());
+         sideSphereCenter.scaleAdd(-sideSphereOffset + radius, axisOrthogonal, position);
 
          UnitVector3D startDirection = new UnitVector3D();
          UnitVector3D endDirection = new UnitVector3D();
@@ -137,31 +232,20 @@ public class STPShape3DMeshBuilder
          startDirection.sub(arcCenter, sideSphereCenter);
          endDirection.sub(arcCenter, capSphereCenter);
 
-         MeshDataHolder arc = toArcPointsAndNormals(arcCenter, smallRadius, startDirection, endDirection, 64);
-         meshBuilder.addMesh(applyRevolution(arc, cylinder.getPosition(), cylinder.getAxis(), 0.0, 2.0 * Math.PI, 64, true), Color.BLUEVIOLET);
-      }
+         MeshDataHolder arc = toArcPointsAndNormals(arcCenter, smallRadius, startDirection, endDirection, 32);
+         MeshDataHolder edgeMesh = applyRevolution(arc, position, axis, 0.0, TwoPi, 64, false);
+         meshBuilder.addMesh(edgeMesh, Color.BLUEVIOLET);
 
-      { // Bottom edge
-         Vector3D axisOrthogonal = newOrthogonalVector(cylinder.getAxis());
-         Point3D arcCenter = new Point3D();
-         arcCenter.scaleAdd(cylinder.getRadius(), axisOrthogonal, cylinder.getBottomCenter());
-
-         double capSphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, 2.0 * cylinder.getRadius());
-         Point3D capSphereCenter = new Point3D();
-         capSphereCenter.scaleAdd(capSphereOffset, cylinder.getAxis(), cylinder.getBottomCenter());
-
-         double sideSphereOffset = EuclidGeometryTools.triangleIsoscelesHeight(largeRadius - smallRadius, cylinder.getLength());
-         Point3D sideSphereCenter = new Point3D();
-         sideSphereCenter.scaleAdd(-sideSphereOffset + cylinder.getRadius(), axisOrthogonal, cylinder.getPosition());
-
-         UnitVector3D startDirection = new UnitVector3D();
-         UnitVector3D endDirection = new UnitVector3D();
-
-         startDirection.sub(arcCenter, capSphereCenter);
-         endDirection.sub(arcCenter, sideSphereCenter);
-
-         MeshDataHolder arc = toArcPointsAndNormals(arcCenter, smallRadius, startDirection, endDirection, 64);
-         meshBuilder.addMesh(applyRevolution(arc, cylinder.getPosition(), cylinder.getAxis(), 0.0, 2.0 * Math.PI, 64, true), Color.BLUEVIOLET);
+         RotationMatrix flipRotation = new RotationMatrix();
+         flipRotation.setAxisAngle(axisOrthogonal.getX(), axisOrthogonal.getY(), axisOrthogonal.getZ(), Math.PI);
+         Arrays.asList(edgeMesh.getVertices()).forEach(v ->
+         {
+            v.sub(position);
+            flipRotation.transform(v);
+            v.add(position);
+         });
+         Arrays.asList(edgeMesh.getVertexNormals()).forEach(n -> flipRotation.transform(n));
+         meshBuilder.addMesh(edgeMesh, Color.BLUEVIOLET);
       }
 
       MeshView meshView = new MeshView(meshBuilder.generateMesh());
@@ -331,7 +415,7 @@ public class STPShape3DMeshBuilder
          EuclidGeometryTools.normal3DFromThreePoint3Ds(arcCenter, edge.getFirstEndpoint(), edge.getSecondEndpoint(), arcNormal);
          startDirection.sub(edge.getFirstEndpoint(), arcCenter);
          endDirection.sub(edge.getSecondEndpoint(), arcCenter);
-         meshes.addAll(toArcMesh(arcCenter, arcNormal, largeRadius, lineThickness, startDirection, startDirection.angle(endDirection), 32, 8));
+         meshes.addAll(toSegmentedLine3DMesh(arcCenter, arcNormal, largeRadius, lineThickness, startDirection, startDirection.angle(endDirection), 32, 8));
          endpoint.scaleAdd(largeRadius / startDirection.length(), startDirection, arcCenter);
          meshes.add(MeshDataHolder.translate(MeshDataGenerator.Sphere(lineThickness, 8, 8), endpoint));
       }
@@ -362,7 +446,7 @@ public class STPShape3DMeshBuilder
          EuclidGeometryTools.normal3DFromThreePoint3Ds(arcCenter, start, end, arcNormal);
          startDirection.sub(start, arcCenter);
          endDirection.sub(end, arcCenter);
-         meshes.addAll(toArcMesh(arcCenter, arcNormal, largeRadius, lineThickness, startDirection, startDirection.angle(endDirection), 32, 8));
+         meshes.addAll(toSegmentedLine3DMesh(arcCenter, arcNormal, largeRadius, lineThickness, startDirection, startDirection.angle(endDirection), 32, 8));
          endpoint.scaleAdd(largeRadius / startDirection.length(), startDirection, arcCenter);
          meshes.add(MeshDataHolder.translate(MeshDataGenerator.Sphere(lineThickness, 8, 8), endpoint));
       }
@@ -478,8 +562,8 @@ public class STPShape3DMeshBuilder
       return direction;
    }
 
-   public static List<MeshDataHolder> toArcMesh(Point3DReadOnly arcCenter, Vector3DReadOnly arcNormal, double arcRadius, double thickness,
-                                                Vector3DReadOnly startDirection, double angleSpan, int resolution, int radialResolution)
+   public static List<MeshDataHolder> toSegmentedLine3DMesh(Point3DReadOnly arcCenter, Vector3DReadOnly arcNormal, double arcRadius, double thickness,
+                                                            Vector3DReadOnly startDirection, double angleSpan, int resolution, int radialResolution)
    {
       SegmentedLine3DMeshDataGenerator generator = new SegmentedLine3DMeshDataGenerator(resolution, radialResolution);
 

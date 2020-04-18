@@ -7,7 +7,6 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.AmbientLight;
 import javafx.scene.Node;
-import javafx.scene.PointLight;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.MeshView;
@@ -34,9 +33,10 @@ public class STPCylinder3DVisualizer extends Application
       view3dFactory.addNodeToView(new AmbientLight(Color.GRAY));
       view3dFactory.addPointLight(-10.0, 0.0, -1.0, Color.WHEAT);
 
-      PointLight light = new PointLight(Color.WHEAT);
-      light.getTransforms().addAll(view3dFactory.getScene().getCamera().getTransforms());
-      view3dFactory.addNodeToView(light);
+//      PointLight light = new PointLight(Color.DARKGRAY);
+//      light.getTransforms().addAll(view3dFactory.getScene().getCamera().getTransforms());
+//      light.getTransforms().add(new Translate(0.0, 0.0, -500.0));
+//      view3dFactory.addNodeToView(light);
 
       Random random = new Random(34106);
       //      for (int i = 0; i < 10; i++)
