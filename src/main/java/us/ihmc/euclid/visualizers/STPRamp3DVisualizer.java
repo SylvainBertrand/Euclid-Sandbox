@@ -43,7 +43,7 @@ public class STPRamp3DVisualizer extends Application
          stpRamp.setMargins(0.005, 0.2);
          stpRamp.setShape3D(ramp3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toRamp3DMesh(ramp3D, Color.DARKCYAN));
-         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPRamp3DMesh(stpRamp));
+         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPRamp3DMesh(stpRamp, Color.CORNFLOWERBLUE, Color.BLUEVIOLET, Color.DARKORANGE, true));
 
          //         view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(ramp3D.asConvexPolytope(), Color.PINK.deriveColor(0.0, 1.0, 1.0, 0.2)));
          //         view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsNormalMesh(ramp3D.asConvexPolytope().getFaces()));

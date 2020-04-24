@@ -47,7 +47,7 @@ public class STPCylinder3DVisualizer extends Application
          stpCylinder.setMargins(0.05, 0.15);
          stpCylinder.setShape3D(cylinder3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toCylinder3DMesh(cylinder3D, Color.DARKCYAN));
-         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPCylinder3DMesh(stpCylinder));
+         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPCylinder3DMesh(stpCylinder, Color.CORNFLOWERBLUE, Color.BLUEVIOLET, Color.DARKORANGE, true));
 
          int resolution = 150;
 //         view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpCylinder,

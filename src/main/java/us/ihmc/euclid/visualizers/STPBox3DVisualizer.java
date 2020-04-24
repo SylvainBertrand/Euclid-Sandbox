@@ -49,7 +49,7 @@ public class STPBox3DVisualizer extends Application
          stpBox.setShape3D(box3D);
          view3dFactory.addNodeToView(Shape3DMeshFactories.toBox3DMesh(box3D, Color.DARKCYAN));
 
-         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPBox3DMesh(stpBox));
+         view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPBox3DMesh(stpBox, Color.CORNFLOWERBLUE, Color.BLUEVIOLET, Color.DARKORANGE, true));
          //      view3dFactory.addNodeToView(Shape3DMeshFactories.toShape3DMesh(box3D.asConvexPolytope(), Color.PINK.deriveColor(0.0, 1.0, 1.0, 0.2)));
          //      view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsNormalMesh(box3D.asConvexPolytope().getFaces()));
          //      view3dFactory.addNodeToView(Shape3DMeshFactories.toHalfEdge3DsMesh(box3D.asConvexPolytope().getHalfEdges(), Color.BLACK, 0.01));

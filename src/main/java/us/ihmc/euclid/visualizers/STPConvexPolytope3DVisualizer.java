@@ -38,7 +38,7 @@ public class STPConvexPolytope3DVisualizer extends Application
       stpPolytope.setMargins(0.08, 0.10);
       stpPolytope.setShape3D(EuclidShapeRandomTools.nextConeConvexPolytope3D(random));
       view3dFactory.addNodeToView(Shape3DMeshFactories.toFace3DsMesh(stpPolytope.getShape3D().getFaces(), Color.DARKCYAN));
-      view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPConvexPolytope3DMesh(stpPolytope));
+      view3dFactory.addNodeToView(STPShape3DMeshBuilder.toSTPConvexPolytope3DMesh(stpPolytope, Color.CORNFLOWERBLUE, Color.BLUEVIOLET, Color.DARKORANGE, true));
       int resolution = 150;
 //      view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.HULL));
       view3dFactory.addNodeToView(Shape3DMeshFactories.toUVMesh(stpPolytope, Color.DARKRED.deriveColor(0.0, 1.0, 1.0, 0.2), resolution, resolution, UVMeshType.SUPPORT_VERTICES));
