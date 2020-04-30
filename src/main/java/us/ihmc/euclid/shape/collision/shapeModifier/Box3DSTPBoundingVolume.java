@@ -94,8 +94,8 @@ public class Box3DSTPBoundingVolume extends SphereTorusPatchesBoundingVolume<Box
       double faceSphereOffset = getFaceSphereOffset(firstClosestFace);
       faceCenter.setToZero();
       faceSphereCenter.setToZero();
-      firstClosestFace.setElement(faceCenter, firstClosestFace.getElement(halfSize));
-      firstClosestFace.setElement(faceSphereCenter, firstClosestFace.getElement(halfSize) - faceSphereOffset);
+      faceCenter.setElement(firstClosestFace, halfSize.getElement(firstClosestFace));
+      faceSphereCenter.setElement(firstClosestFace, halfSize.getElement(firstClosestFace) - faceSphereOffset);
 
       if (!isMaxFace)
       {
@@ -121,13 +121,13 @@ public class Box3DSTPBoundingVolume extends SphereTorusPatchesBoundingVolume<Box
 
          for (Axis3D axis : Axis3D.values)
          { // We look at whether the supportingVertex actually belongs to the torus of a neighboring edge.
-            if (Math.abs(axis.getElement(supportingVertexToPack)) < axis.getElement(halfSize) * limitScaleFactor)
+            if (Math.abs(supportingVertexToPack.getElement(axis)) < halfSize.getElement(axis) * limitScaleFactor)
             {
-               axis.setElement(edgeCenter, 0.0);
-               axis.next().setElement(edgeCenter, axis.next().getElement(closestVertexCenter));
-               axis.previous().setElement(edgeCenter, axis.previous().getElement(closestVertexCenter));
+               edgeCenter.setElement(axis, 0.0);
+               edgeCenter.setElement(axis.next(), closestVertexCenter.getElement(axis.next()));
+               edgeCenter.setElement(axis.previous(), closestVertexCenter.getElement(axis.previous()));
 
-               double torusRadius = triangleIsoscelesHeight(largeRadius - smallRadius, axis.getElement(shape3D.getSize()));
+               double torusRadius = triangleIsoscelesHeight(largeRadius - smallRadius, shape3D.getSize().getElement(axis));
                EuclidShapeTools.innerSupportingVertexTorus3D(supportDirection, edgeCenter, axis, torusRadius, largeRadius, supportingVertexToPack);
                break;
             }
@@ -152,15 +152,15 @@ public class Box3DSTPBoundingVolume extends SphereTorusPatchesBoundingVolume<Box
       queryAbsolute.setAndAbsolute(query);
 
       faceCenter.setToZero();
-      face.setElement(faceCenter, face.getElement(halfSize));
+      faceCenter.setElement(face, halfSize.getElement(face));
 
       // Testing against first side
       edgeCenter.set(faceCenter);
-      face.next().setElement(edgeCenter, face.next().getElement(halfSize));
+      edgeCenter.setElement(face.next(), halfSize.getElement(face.next()));
       Axis3D edgeAxis = face.previous();
 
       limitPlaneNormal.sub(edgeCenter, faceCenter);
-      face.setElement(limitPlaneNormal, face.getElement(limitPlaneNormal) + faceSphereOffset);
+      limitPlaneNormal.setElement(face, limitPlaneNormal.getElement(face) + faceSphereOffset);
       limitPlaneNormal.cross(edgeAxis);
 
       if (isPoint3DAbovePlane3D(faceCenter, edgeCenter, limitPlaneNormal) != isPoint3DAbovePlane3D(queryAbsolute, edgeCenter, limitPlaneNormal))
@@ -168,11 +168,11 @@ public class Box3DSTPBoundingVolume extends SphereTorusPatchesBoundingVolume<Box
 
       // Testing against second side
       edgeCenter.set(faceCenter);
-      face.previous().setElement(edgeCenter, face.previous().getElement(halfSize));
+      edgeCenter.setElement(face.previous(), halfSize.getElement(face.previous()));
       edgeAxis = face.next();
 
       limitPlaneNormal.sub(edgeCenter, faceCenter);
-      face.setElement(limitPlaneNormal, face.getElement(limitPlaneNormal) + faceSphereOffset);
+      limitPlaneNormal.setElement(face, limitPlaneNormal.getElement(face) + faceSphereOffset);
       limitPlaneNormal.cross(edgeAxis);
 
       if (isPoint3DAbovePlane3D(faceCenter, edgeCenter, limitPlaneNormal) != isPoint3DAbovePlane3D(queryAbsolute, edgeCenter, limitPlaneNormal))
@@ -183,8 +183,8 @@ public class Box3DSTPBoundingVolume extends SphereTorusPatchesBoundingVolume<Box
 
    private double getFaceSphereOffset(Axis3D face)
    {
-      double a = face.next().getElement(halfSize);
-      double b = face.previous().getElement(halfSize);
+      double a = halfSize.getElement(face.next());
+      double b = halfSize.getElement(face.previous());
       return Math.sqrt(EuclidCoreTools.square(largeRadius - smallRadius) - (a * a + b * b));
    }
 }
