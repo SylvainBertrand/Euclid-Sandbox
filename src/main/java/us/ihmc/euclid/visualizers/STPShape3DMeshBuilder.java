@@ -559,8 +559,8 @@ public class STPShape3DMeshBuilder
 
       if (edgeIndex == neighborStartIndex)
       {
-         v1 = neighbor.getVertex(neighborStartIndex + 1);
-         v2 = neighbor.getVertex(neighborStartIndex + 2);
+         v1 = neighbor.getVertex((neighborStartIndex + 1) % neighbor.getNumberOfEdges());
+         v2 = neighbor.getVertex((neighborStartIndex + 2) % neighbor.getNumberOfEdges());
       }
       else
       {
